@@ -1,0 +1,4 @@
+context_len: 12
+pred_len: 6
+batch_size: 8
+coverage_target: 0.90

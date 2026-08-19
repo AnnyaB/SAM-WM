@@ -1,0 +1,15 @@
+defaults:
+  - _self_
+
+project:
+  name: coolworld-sam
+  evidence_policy: real_only
+
+hackathon:
+  country: US
+  earliest_date: "2021-01-01"
+  heatmap_forecast_hours: 12
+
+sam:
+  tau: 0.05
+  exact_solver: CLARABEL
