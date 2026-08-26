@@ -1,184 +1,197 @@
-# SAM-WM / CoolWorld-SAM
+# SAM-WM
 
-**Action-conditioned world modelling for real urban cooling decisions.**
+**Sparse Adaptive Mechanism World Model for evidence-bounded urban thermal intelligence**
 
-This is the private research + product repository for the FortyGuard Hackathon'26 build.
-The system consumes real thermal/environmental evidence, learns a compact predictive world
-model from real trajectories, estimates uncertainty/support for cooling interventions, ranks
-physical actions, and renders observed and predicted futures in a 3D browser application.
+SAM-WM is a compact research system for learning reusable urban thermal mechanisms from real sensor networks, forecasting short-horizon temperature fields, testing zero-shot cross-city transfer, and handing physical intervention decisions to a separate evidence layer (CANDRA). It is designed for the FortyGuard Hackathon'26 and as a reproducible foundation for later peer-reviewed research.
 
-## What it does — and what it does not do
+> **Truth boundary.** SAM-WM predicts thermal futures. It does not claim a tree, shade structure, or reflective pavement causes a particular temperature reduction unless independent treated/control evidence supports that effect. CANDRA abstains when such evidence is missing or weak.
 
-The software does not physically lower city temperature by itself. Real cooling occurs after a
-city/operator deploys a physical action such as shade, canopy, reflective material, scheduling,
-or another validated intervention. SAM-WM is the intelligence layer that measures the current
-thermal state, predicts candidate intervention outcomes, quantifies uncertainty, and recommends
-an action. Real post-deployment observations then become new evidence for evaluation/learning.
+## Why this is different
 
-No fabricated temperature, intervention effect, model result, activity ID, city geometry, or
-customer result is inserted when evidence is missing.
+SAM-WM encodes four ideas directly in the model:
 
-## Learning design
+1. **Sparse mental map.** A k-nearest-neighbour city graph is computed once from station geometry, so message passing is O(E), not dense O(N²).
+2. **Reusable mechanism library.** Future temperature evolves through conservative exchange, optional observed-wind transport, bounded source/sink forcing, and a deliberately small residual mechanism.
+3. **Dream + surprise.** The latent state is rolled forward autoregressively; probabilistic forecast error becomes a violation-of-expectation signal rather than an unqualified claim of "understanding".
+4. **Evidence-bounded action.** Intervention effects are handled separately by CANDRA. Forecast accuracy alone never licenses a causal cooling claim.
 
-**Primary learning = self-supervised predictive world modelling + supervised probabilistic
-forecasting on real trajectories.** The model predicts future latent state and future temperature
-from past state plus explicit intervention/action variables. Real intervention records provide the
-action-conditioned signal. A separate matched intervention replay estimates measured real-world
-effects where before/after/control data exist.
+The objective intentionally follows the compact design philosophy of LeWorldModel: a predictive objective plus one representation regularizer,
 
-We do **not** use RL for the initial hackathon system: there is no trustworthy global action/reward
-log that would justify it. The final action selector is a constrained planner over world-model
-predictions and uncertainty. RL can be evaluated later only if a real logged decision dataset exists.
+`L = L_pred + lambda_SIG * L_SIGReg`,
 
-## Architecture
+with physical structure expressed in the operators rather than a large hand-weighted penalty collection.
+
+## Repository layout
 
 ```text
-real FortyGuard Temperature API + real urban/intervention sources
-                              |
-                              v
-                    immutable evidence store
-                              |
-              +---------------+----------------+
-              |                                |
-              v                                v
-   self-supervised/action-WM          real intervention replay
-  spatial Transformer + temporal GRU       matched DiD / placebo
-              |                                |
-              +---------------+----------------+
-                              v
-                 SAM local action support
-              + calibrated uncertainty sets
-                              |
-                              v
-                constrained cooling planner
-                              |
-                              v
-                    bounded agentic workflow
-                              |
-                              v
-                real 3D observed / future UI
+SAM-WM/
+├── train.py                 # primary Freiburg training
+├── eval.py                  # ID final test + zero-shot OOD
+├── fortyguard_check.py      # one real, auditable API request
+├── plot.py                  # paper/demo figures from saved metrics
+├── config/                  # frozen experiment protocol
+├── src/coolworld/
+│   ├── samwm.py             # core world model
+│   ├── graph.py             # sparse city graph
+│   ├── benchmarks.py        # real dataset loaders
+│   ├── experiment.py        # training/eval/calibration
+│   ├── candra.py            # causal evidence / abstention
+│   ├── fortyguard.py        # crash-safe FortyGuard client
+│   └── evidence.py          # content-addressed provenance helpers
+├── tests/
+├── docs/
+└── notebooks/SAM_WM_KAGGLE.ipynb
 ```
 
-The agentic layer is deliberately bounded: the core planner and API calls are structured and
-auditable. A small open-source LLM can later parse natural-language goals or explain outputs,
-but it cannot invent measurements, select an unsupported physical action, or override the planner.
+The 3D UI is intentionally **not included in this branch yet**. The existing UI should be previewed and approved locally before it is wired to the trained checkpoint and pushed.
 
-## FortyGuard API
+## Primary benchmark — Freiburg
 
-The API is **not training code**. It is the real thermal-intelligence data/service layer used by
-the product. The API key stays only in a local `.env` or deployment secret. It is never committed.
+Source: **Street-level weather station network in Freiburg, Germany: Curated dataset from 2022-09-01 to 2023-08-31 [L2]**, DOI `10.5281/zenodo.12732565`.
 
-The client implements FortyGuard's asynchronous pattern:
+The official curated file contains hourly air temperature and relative humidity, station identity, and an `observed` / `imputed` label. SAM-WM uses the WSN stations (`FR****`) and preserves that label. Imputed context values can preserve temporal continuity, but **test metrics are computed only on observed target values**.
+
+Frozen split:
 
 ```text
-POST analysis -> activity_id -> GET /v1/status/{activity_id} -> Completed result
+train       2022-09-03 .. 2023-04-30
+validation  2023-05-01 .. 2023-06-30
+final test  2023-07-01 .. 2023-08-31
+context     48 h
+horizon     6 h
 ```
 
-The current code integrates heatmap first and is structured for environmental parameters,
-satellite/street-view segmentation, and Heat Intelligence to enrich the world state.
+This split is **our preregistered SAM-WM protocol**, not a claim that it is the split used by the dataset authors.
 
-## Geographic scale
+## Zero-shot OOD
 
-The architecture is city-provider based and contains no Phoenix-only learning assumption. The
-hackathon's FortyGuard data coverage constrains the competition build to U.S. geographies. Any
-U.S. city can be used through the same temperature client. A true worldwide deployment requires
-additional validated temperature/intervention providers outside FortyGuard coverage and separate
-cross-city/cross-country evaluation; the repository does not pretend Phoenix proves global
-performance.
+### OOD-1 — Novi Sad NSUNET
 
-## Repository map
+DOI `10.5281/zenodo.7738094`. Twelve urban sites, hourly air temperature, 2016–2017. No fine-tuning and no OOD-label recalibration are permitted. The Freiburg checkpoint and Freiburg validation conformal radius are frozen before evaluation.
 
-- `src/coolworld/fortyguard.py` — real API submit/poll client.
-- `src/coolworld/evidence.py` — content-addressed evidence/provenance.
-- `src/coolworld/ml/model.py` — action-conditioned JEPA-style predictive world model.
-- `src/coolworld/ml/data.py` — real-only sequence dataset + manifest validation.
-- `src/coolworld/ml/trainer.py` — reproducible PyTorch training.
-- `src/coolworld/ml/evaluate.py` — forecast/uncertainty evaluation.
-- `src/coolworld/ml/support.py` — local empirical action support.
-- `src/coolworld/ml/calibration.py` — support-stratified conformal calibration.
-- `src/coolworld/research/causal.py` — matched intervention replay estimator.
-- `src/coolworld/planner.py` — uncertainty-bounded action ranking.
-- `src/coolworld/agent.py` — bounded agentic orchestration.
-- `src/coolworld/sam.py` — SAM support operator + exact linear reference QCQP.
-- `static/index.html` — 3D product UI.
-- `scripts/` — real data collection, training, evaluation, intervention replay.
-- `configs/` — Hydra experiment configuration.
-- `notebooks/KAGGLE_TRAIN_EVAL.md` — exact Kaggle workflow.
-- `paper/` — research protocol/checklist.
+### OOD-2 — FAIRUrbTemp
 
-## Local setup
+Scientific Data 2026, DOI `10.1038/s41597-026-06804-4`; data DOI `10.48620/93247`. FAIRUrbTemp contains standardized, quality-controlled street-level urban temperature data across 12 European cities in Station Exchange Format (SEF).
+
+The BORIS portal distributes city archives rather than one stable direct file URL. Download and extract the official archive into a Kaggle dataset/input directory, then run:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-pip install -e '.[ml,research,dev]'
-cp .env.example .env
+python eval.py \
+  --checkpoint artifacts/freiburg/seed_0/best.pt \
+  --data fairurbtemp \
+  --root /kaggle/input/fairurbtemp-extracted \
+  --city <city-name> \
+  --out artifacts/eval/seed_0
 ```
 
-Then put the real key in `.env` locally:
+The loader fails closed if it cannot unambiguously identify at least five hourly temperature SEF stations with a common interval. It does not silently guess a schema.
 
-```text
-FORTYGUARD_API_KEY=...
-```
-
-Run:
+## Install
 
 ```bash
-pytest -m 'not live' -q
-ruff check src tests scripts
-uvicorn coolworld.api:app --reload
+# Registered local/CI/Kaggle interpreter contract: CPython 3.12.
+# Use the interpreter by absolute/path-local executable, not a shell `pytest` shim.
+python3.12 -m venv .venv
+./.venv/bin/python -m pip install --upgrade pip
+./.venv/bin/python -m pip install -e '.[dev]'
+./.venv/bin/python -m compileall -q src train.py eval.py fortyguard_check.py plot.py summarize.py
+./.venv/bin/python -m pytest
 ```
 
-Open `http://127.0.0.1:8000`.
+The registered hackathon environment is CPython 3.12. Do not mix a Python 3.14 venv with a pyenv/conda `pytest` executable; invoke every tool as `python -m ...` through the same interpreter. Passing software tests is **not** a research result.
 
-## Collect a real heatmap
-
-Create a real GeoJSON AOI file and run:
+## Train
 
 ```bash
-python scripts/collect_fortyguard.py \
-  --aoi path/to/aoi.geojson \
-  --date 2026-08-18 \
-  --time 14:00 \
+python train.py --config config/train.yaml --seed 0 --out artifacts/freiburg
+python train.py --config config/train.yaml --seed 1 --out artifacts/freiburg
+python train.py --config config/train.yaml --seed 2 --out artifacts/freiburg
+```
+
+No Freiburg final-test labels are used in training or early stopping.
+
+## Evaluate
+
+```bash
+# Primary held-out test
+python eval.py --checkpoint artifacts/freiburg/seed_0/best.pt --data freiburg --out artifacts/eval/seed_0
+
+# OOD-1
+python eval.py --checkpoint artifacts/freiburg/seed_0/best.pt --data novisad --out artifacts/eval/seed_0
+
+# OOD-2 after adding/extracting the official FAIRUrbTemp archive
+python eval.py --checkpoint artifacts/freiburg/seed_0/best.pt --data fairurbtemp --root /kaggle/input/fairurbtemp-extracted --city <city> --out artifacts/eval/seed_0
+```
+
+Repeat evaluation for every seed. **Do not choose the best seed.** Report mean ± standard deviation across all frozen seeds.
+
+## FortyGuard real API proof
+
+Never commit an API key. Keep it only in a local `.env` / shell environment or Kaggle Secret named `FORTYGUARD_API_KEY`.
+
+```bash
+export FORTYGUARD_API_KEY='...'
+python fortyguard_check.py \
+  --date 2026-08-26 \
+  --time 15:00 \
+  --aoi examples/sanjose_aoi.geojson \
   --granularity 100
 ```
 
-The raw completed response and provenance hash are stored under the git-ignored evidence directory.
+The client persists the `activity_id` immediately and resumes polling the same activity after interruption, rather than blindly spending credits by reposting the same request. Completed payloads are stored under `artifacts/fortyguard/`; this directory is git-ignored.
 
-## Kaggle
+For the final hackathon README, add **one sanitized real request and response excerpt generated from this store**. Never paste the API key. Do not fabricate provider fields.
 
-Kaggle is for GPU training/evaluation after the real dataset bundle and manifest exist. Follow
-`notebooks/KAGGLE_TRAIN_EVAL.md`. Do not put the FortyGuard key into a notebook cell or GitHub.
+## Results and figures
 
-## Current truth boundary
+Research numbers are intentionally absent before the real runs. After all three seeds finish:
 
-The repository now contains the full **implementation path** from evidence acquisition through
-training/evaluation/planning/UI, but there is not yet a trained checkpoint or measured cooling result
-inside the repository. Those must be produced from real observations. Until that happens, the app
-must say `MODEL_NOT_READY` rather than show a made-up counterfactual.
+```bash
+python plot.py \
+  artifacts/eval/seed_0/freiburg_metrics.json \
+  artifacts/eval/seed_0/novisad_metrics.json \
+  --out artifacts/figures
+```
 
+The required report set is:
 
-## v0.4 — actual moving city renderer
+- train / validation learning curves per seed;
+- Freiburg MAE, RMSE, bias, p95 absolute error;
+- horizon-wise error (to be added from raw prediction export before paper submission);
+- 90% split-conformal coverage;
+- zero-shot Novi Sad and FAIRUrbTemp metrics;
+- model parameter count and inference latency;
+- mechanism-weight diagnostics;
+- surprise distribution under ID vs OOD;
+- failures and abstentions, not only wins.
 
-The old diagnostic temperature-block view is retired. The live browser now uses pinned
-MapLibre GL JS 6.1.0 + deck.gl 9.3.7 and renders:
+Do not write "SOTA", "human-level", "AGI", "cools Earth", or "beats model X" unless the corresponding experiment directly establishes that statement.
 
-- real vector-map geography and 3D building extrusion when building heights exist;
-- real FortyGuard GeoJSON thermal polygons as a ground-hugging thermal field;
-- playback of compatible recorded real heatmap frames from the immutable evidence store;
-- smooth visual interpolation between recorded frames (explicitly labelled interpolation);
-- baseline vs intervention maps with synchronized 3D cameras;
-- future thermal frames produced from the actual PyTorch checkpoint;
-- a proposed intervention footprint rendered separately from observed assets.
+## CANDRA
 
-There are **no hard-coded cooling values** in the browser. `Predict cooling future` remains
-blocked until a valid trained checkpoint, real context dataset and support calibration exist.
+`src/coolworld/candra.py` contains a temporal block-bootstrap difference-in-differences reference estimator and conservative action gate. It is valid only when a genuine intervention/control design is available and its assumptions are justified. Ordinary observational temperature data do not satisfy that requirement by themselves.
 
-The model was also corrected so future rollouts receive known future time features and reapply
-spatial interaction on every predicted step. It no longer evolves future state from actions alone.
+## Reproducibility rules
 
+- fixed seeds and chronology;
+- immutable dataset checksums where the host exposes stable files;
+- no target-label leakage into normalizers;
+- validation-only early stopping;
+- split conformal calibration on Freiburg validation only;
+- no OOD fine-tuning or OOD-label recalibration;
+- no API secrets in Git;
+- fail-closed dataset parsers;
+- no invented intervention delta;
+- every final number must be produced from saved artifacts, not manually typed.
 
-### Model/context binding
+## UI and deployment
 
-Counterfactual inference is cryptographically bound to the same real tile grid used to build the model context dataset. Loading another city with coincidentally similar numeric tile IDs cannot reuse the checkpoint: the backend compares a SHA-256 grid signature built from tile IDs + geographic centroids and returns `MODEL_CONTEXT_GRID_MISMATCH` on mismatch. This prevents a Phoenix/San-José-style geometry mix-up from being visualized as a valid prediction.
+The existing CoolWorld 3D UI is intentionally held outside this redesign until its visual design is approved. After training, the next branch will connect:
+
+`FortyGuard observed field -> SAM-WM baseline future -> CANDRA evidence gate -> 3D predicted/replay views`.
+
+The live demo must remain usable without login during judging. A green UI state is never treated as scientific evidence by itself.
+
+## Attribution
+
+SAM-WM is an independent project. Its compact predictive + regularization philosophy is inspired by the public LeWorldModel implementation, but it does not copy LeWM's pixel architecture or claim authorship of SIGReg. Dataset and paper sources are listed in `docs/SOURCES.md`.

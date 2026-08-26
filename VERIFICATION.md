@@ -1,39 +1,26 @@
-# Verification status — v0.1
+# Verification snapshot
 
-This file records what was actually executed while creating this build.
+Generated 2026-08-26.
 
-## Verified here
+Repository version: `1.0.1` environment/physics-integrity correction.
 
-- Python source compilation: **PASS**.
-- Non-live tests: **8 passed**.
-- Evidence policy contains no simulator/synthetic evidence class.
-- FortyGuard provenance requires activity ID + request hash.
-- Content-addressed evidence rejects mismatched hashes.
-- FortyGuard heatmap schema rejects undocumented granularity values.
-- Hackathon date floor rejects dates before 2021-01-01.
-- SAM support-deficiency spectral/symmetry checks pass.
-- SAM orthogonal-equivariance check passes.
+Local checks completed before packaging:
+- `python -m compileall` on the package and entry points: PASS.
+- `python -m pytest`: 12 invariant/unit tests PASS under the repository source path.
+- Tooling contract: Python 3.12 only for the registered hackathon environment; CI, Makefile, README and Kaggle use `python -m ...` to prevent pyenv/venv interpreter mixing.
+- synthetic end-to-end train -> validation calibration -> held-out evaluation: PASS.
 
-## Not executed here
+Important scope boundary:
+- The official Freiburg / Novi Sad / FAIRUrbTemp bytes were not available in this execution container, so real benchmark results are intentionally absent.
+- The Freiburg and Novi Sad loaders use official dataset filenames/checksums and fail closed on schema mismatch.
+- FAIRUrbTemp requires the official DOI 10.48620/93247 archive to be attached/extracted in Kaggle; no synthetic replacement is used.
+- No FortyGuard API request was made during packaging and no API key is included.
 
-- **Live FortyGuard request**: not executed because this artifact runtime has no outbound network/API-secret injection. No cached or fabricated response was substituted.
-- **Live Phoenix ArcGIS integration test**: intentionally not executed for the same network reason.
-- **Exact CVXPY QCQP tests**: source is present and `cvxpy` is a declared project dependency, but CVXPY is not installed in this artifact execution environment. Two exact-solver tests therefore reported `SKIPPED`; they did not report false passes.
-
-Before any empirical result or paper claim, run the live integration suite and exact-solver tests in the real project environment.
-
-## No result claims
-
-This v0.1 repository does **not** claim a trained world model, measured cooling benefit, causal intervention effect, hackathon score, paper result, or lives saved. Those claims require real evidence that has not yet been collected through this build.
-
-## v0.2 verification
-
-- Non-live tests after 3D/world-mode/model-gate changes: **14 passed**.
-- Exact CVXPY reference tests: **2 skipped** because CVXPY is not installed in this artifact execution environment; they are not reported as passes.
-- Live network integration test: **deselected**, so no external response was faked.
-- Python source compilation: **PASS**.
-- API secret scan: no literal FortyGuard API key value is stored in source/config/static files.
-- Counterfactual endpoint fails closed until an evidence-bearing model artifact is present.
-- Validated replay has no generated fallback and reports `REPLAY_NOT_AVAILABLE` until real before/after/control evidence exists.
-
-No claim of measured cooling, causal effect, global validation, lives saved, or trained world-model performance is made by v0.2.
+Corrections in 1.0.1:
+- CPython 3.12 is the registered interpreter across local development and CI.
+- CI/Makefile/README use `python -m pytest` and `python -m ruff`, preventing pyenv/venv executable mixing.
+- pytest has an explicit `src` path fallback for source-tree collection.
+- SIGReg now regularizes trainable predicted latents; the detached JEPA target is not used for the regularizer.
+- Conservative exchange is degree-normalized, preserving antisymmetry and a discrete maximum principle for the exchange step.
+- The wind mechanism is masked out of the router when no observed wind is supplied.
+- FortyGuard requests are intent-logged before POST; ambiguous POST outcomes fail closed; completed responses are content-addressed and reused without reposting.

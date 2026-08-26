@@ -1,3 +1,6 @@
-"""CoolWorld-SAM: real-evidence urban heat intelligence."""
+"""SAM-WM: Sparse Adaptive Mechanism World Model for urban thermal forecasting."""
 
-__version__ = "0.1.0"
+from .samwm import SAMWMOutput, SAMWorldModel, SIGReg, samwm_loss
+
+__all__ = ["SAMWorldModel", "SAMWMOutput", "SIGReg", "samwm_loss"]
+__version__ = "1.0.1"

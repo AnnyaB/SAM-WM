@@ -1,0 +1,21 @@
+# Frozen hackathon protocol. Do not tune on the final Freiburg test or OOD labels.
+data_root: data/freiburg
+graph_k: 4
+context_hours: 48
+horizon_hours: 6
+splits:
+  train: ['2022-09-03T00:00:00', '2023-04-30T23:00:00']
+  val: ['2023-05-01T00:00:00', '2023-06-30T23:00:00']
+  test: ['2023-07-01T00:00:00', '2023-08-31T23:00:00']
+hidden_dim: 64
+max_source_step_normalized: 0.35
+residual_fraction: 0.20
+lambda_sig: 0.01
+sigreg_projections: 256
+batch_size: 64
+epochs: 80
+patience: 10
+lr: 0.0003
+weight_decay: 0.0001
+grad_clip: 1.0
+conformal_alpha: 0.10

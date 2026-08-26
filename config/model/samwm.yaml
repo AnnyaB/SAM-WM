@@ -1,0 +1,7 @@
+name: SAM-WM
+dynamic_features: [temperature, relative_humidity]
+static_features: [latitude, longitude, elevation]
+hidden_dim: 64
+mechanisms: [conservative_exchange, wind_transport_if_observed, source_sink, bounded_residual]
+sparse_graph_k: 4
+objective: prediction_plus_SIGReg

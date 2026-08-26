@@ -1,0 +1,19 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {"name": "SAM-WM San Jose integration AOI"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-121.8955, 37.3295],
+          [-121.8885, 37.3295],
+          [-121.8885, 37.3345],
+          [-121.8955, 37.3345],
+          [-121.8955, 37.3295]
+        ]]
+      }
+    }
+  ]
+}
