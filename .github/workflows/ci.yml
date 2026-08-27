@@ -14,7 +14,4 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: python -m pip install --index-url https://download.pytorch.org/whl/cpu 'torch>=2.3,<3'
       - run: python -m pip install -e '.[dev,app]'
-      - run: python -m compileall -q src train.py eval.py research.py fortyguard_check.py plot.py summarize.py
-      - run: ruff check src tests train.py eval.py research.py fortyguard_check.py plot.py summarize.py
-      - run: ruff format --check src tests train.py eval.py research.py fortyguard_check.py plot.py summarize.py
-      - run: pytest
+      - run: make PYTHON=python verify
