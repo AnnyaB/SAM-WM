@@ -58,8 +58,18 @@ def test_canonical_map_data_rejects_duplicate_ids_and_missing_temperature():
     duplicate = {
         "type": "FeatureCollection",
         "features": [
-            {"type": "Feature", "id": "x", "properties": {"average_temperature": 30}, "geometry": geometry},
-            {"type": "Feature", "id": "x", "properties": {"average_temperature": 31}, "geometry": geometry},
+            {
+                "type": "Feature",
+                "id": "x",
+                "properties": {"average_temperature": 30},
+                "geometry": geometry,
+            },
+            {
+                "type": "Feature",
+                "id": "x",
+                "properties": {"average_temperature": 31},
+                "geometry": geometry,
+            },
         ],
     }
     with pytest.raises(deployment.DeploymentError, match="DUPLICATE_TILE_ID"):
