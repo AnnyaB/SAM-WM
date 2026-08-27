@@ -5,6 +5,13 @@ import json
 from pathlib import Path
 
 
+def _code_source(path: Path) -> str:
+    notebook = json.loads(path.read_text(encoding="utf-8"))
+    return "\n".join(
+        "".join(cell["source"]) for cell in notebook["cells"] if cell["cell_type"] == "code"
+    )
+
+
 def test_kaggle_notebook_code_cells_are_plain_valid_python():
     path = Path("notebooks/SAM_WM_KAGGLE.ipynb")
     notebook = json.loads(path.read_text(encoding="utf-8"))
@@ -20,8 +27,7 @@ def test_kaggle_notebook_code_cells_are_plain_valid_python():
 
 def test_kaggle_notebook_is_single_samwm_pipeline_and_freezes_before_heldout():
     path = Path("notebooks/SAM_WM_KAGGLE.ipynb")
-    notebook = json.loads(path.read_text(encoding="utf-8"))
-    source = "\n".join("".join(cell["source"]) for cell in notebook["cells"])
+    source = _code_source(path)
 
     train_suite = source.index('"research.py"')
     preselect = source.index('"promote.py", "preselect"')
