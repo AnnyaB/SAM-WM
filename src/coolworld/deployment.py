@@ -216,9 +216,7 @@ def _context_dataset(frames: list[dict[str, Any]], *, k: int) -> UrbanDataset:
 
 def _absolute_hours(timestamps: np.ndarray) -> np.ndarray:
     base = np.datetime64("2000-01-01T00:00:00")
-    return ((timestamps.astype("datetime64[s]") - base) / np.timedelta64(1, "h")).astype(
-        np.float32
-    )
+    return ((timestamps.astype("datetime64[s]") - base) / np.timedelta64(1, "h")).astype(np.float32)
 
 
 def baseline_forecast(
@@ -269,7 +267,9 @@ def baseline_forecast(
     )
     return {
         "tile_ids": list(ds.station_ids),
-        "future_timestamps": [np.datetime_as_string(value, unit="s") for value in future_timestamps],
+        "future_timestamps": [
+            np.datetime_as_string(value, unit="s") for value in future_timestamps
+        ],
         "baseline_temperature_c": baseline.tolist(),
         "baseline_interval_low_c": (baseline - radius).tolist(),
         "baseline_interval_high_c": (baseline + radius).tolist(),
