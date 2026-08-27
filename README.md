@@ -55,7 +55,7 @@ The core contribution remains easy to find in `src/coolworld/samwm.py`, followin
 
 **OOD-2:** FAIRUrbTemp, DOI `10.48620/93247`, evaluated zero-shot on an unseen city. Observation-level QC flags are filtered from scoring; the original dataset intentionally retains flagged measurements, so filtering is the evaluator's responsibility.
 
-The cross-city representation uses city-centred local x/y and relative elevation, not raw absolute latitude/longitude. Missing relative humidity is accompanied by an explicit modality-availability mask. The admissible source scale is derived only from observed **training** temperature increments.
+The cross-city representation uses city-centred local x/y and relative elevation, not raw absolute latitude/longitude. Missing relative humidity is accompanied by an explicit modality-availability mask. The admissible source scale is derived only from observed **training** temperature increments. Forecast windows must also remain hourly-contiguous; gaps are never silently treated as one physical time step.
 
 ## Installation
 
@@ -92,7 +92,7 @@ python eval.py \
   --out artifacts/eval/seed_0
 ```
 
-Final test and OOD access are deliberately gated. `eval.py` atomically writes a receipt **before** reading held-out labels and refuses to reopen the same held-out dataset in that output directory.
+Validation and final-test artifacts have different filenames, so the final evaluation cannot overwrite the evidence used for model selection. Held-out metric computation is deliberately gated: `eval.py` atomically writes a receipt before computing held-out metrics and refuses to reopen the same held-out dataset in that output directory.
 
 ```bash
 python eval.py --checkpoint artifacts/freiburg/seed_0/best.pt \
@@ -112,7 +112,9 @@ Repeat with seeds 1 and 2 using separate `artifacts/eval/seed_<n>` directories, 
 python summarize.py --root artifacts/eval --out artifacts/summary.json
 ```
 
-Metrics include MAE, RMSE, bias, p95 absolute error, horizon-wise MAE/RMSE, conformal coverage, surprise, parameter count, and inference latency.
+The aggregator groups by evaluation (`freiburg_validation`, `freiburg_heldout`, `novisad_heldout`, `fairurbtemp_heldout`) so development evidence cannot be mixed into final/OOD evidence. Metrics include MAE, RMSE, bias, p95 absolute error, horizon-wise MAE/RMSE, conformal coverage, surprise, parameter count, and inference latency.
+
+For Kaggle, use `notebooks/SAM_WM_KAGGLE.ipynb` and follow `docs/KAGGLE_PROTOCOL.md`. The notebook resolves one exact GitHub source SHA, verifies the repository, records checkpoint/config/validation hashes before held-out evaluation, and uses a Kaggle Secret named `GITHUB_TOKEN` only when private-repository access is required.
 
 ## FortyGuard evidence
 

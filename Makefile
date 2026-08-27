@@ -1,4 +1,4 @@
-PYTHON ?= python3.11
+PYTHON ?= python
 
 .PHONY: install install-app test lint format-check verify train serve
 install:

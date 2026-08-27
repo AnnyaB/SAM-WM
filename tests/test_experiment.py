@@ -4,7 +4,12 @@ import numpy as np
 import torch
 
 from coolworld.benchmarks import UrbanDataset
-from coolworld.experiment import derive_source_bound, fit_normalizer, normalized_dynamic
+from coolworld.experiment import (
+    derive_source_bound,
+    fit_normalizer,
+    make_starts,
+    normalized_dynamic,
+)
 
 
 def dataset() -> UrbanDataset:
@@ -70,3 +75,37 @@ def test_source_bound_uses_training_labels_only():
     )
     after = derive_source_bound(contaminated, norm, split, quantile=0.99)
     assert before == after
+
+
+def test_windows_never_cross_non_hourly_gap():
+    ds = dataset()
+    timestamps = ds.timestamps.copy()
+    timestamps[180:] += np.timedelta64(1, "h")
+    gapped = UrbanDataset(
+        ds.name,
+        timestamps,
+        ds.temperature,
+        ds.rh,
+        ds.observed_mask,
+        ds.station_ids,
+        ds.lat,
+        ds.lon,
+        ds.elevation,
+        ds.edge_index,
+        ds.edge_attr,
+        ds.source,
+    )
+    starts = make_starts(
+        gapped,
+        ("2023-01-02T00", "2023-01-12T23"),
+        context=48,
+        horizon=6,
+    )
+    assert 180 not in starts
+    assert all(
+        np.all(
+            np.diff(gapped.timestamps[start - 48 : start + 6])
+            == np.timedelta64(1, "h")
+        )
+        for start in starts
+    )

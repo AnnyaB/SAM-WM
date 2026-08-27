@@ -1,38 +1,39 @@
 # Kaggle execution protocol
 
-This is the frozen execution order for the SAM-WM benchmark. Do not use the old `SAM_WM_V41_KAGGLE_INPUT.zip` workflow.
+This is the frozen execution order for the SAM-WM benchmark. Do not use the retired
+`SAM_WM_V41_KAGGLE_INPUT.zip` workflow.
 
-## Kaggle settings
+## Runtime
 
-- Accelerator: one GPU is sufficient; T4/P100 are fine.
-- Internet: ON for the Freiburg/Novi Sad Zenodo downloads and repository install.
-- Persistence: save `/kaggle/working/SAM-WM/artifacts` as notebook output after every completed seed.
-- FAIRUrbTemp: attach/extract the official DOI `10.48620/93247` files as a Kaggle input because the repository intentionally does not guess undocumented BORIS archive URLs.
+- Accelerator: one Kaggle GPU.
+- Internet: ON. Freiburg and Novi Sad are fetched from their registered Zenodo records by
+  the benchmark loaders when absent, with the recorded MD5 checksums enforced.
+- Repository source: the notebook resolves `main` once, downloads that exact GitHub tarball,
+  and writes `artifacts/FROZEN_SOURCE_SHA.txt`.
+- Private repository: add a Kaggle Secret named `GITHUB_TOKEN` with read access. If the
+  repository is public, the same bootstrap works without the secret.
+- FAIRUrbTemp: attach the official DOI `10.48620/93247` extracted files as a Kaggle Input.
+- Persistence: save `/kaggle/working/SAM-WM/artifacts` as notebook output.
 
-## 1. Clone the frozen commit
+The executable reference is `notebooks/SAM_WM_KAGGLE.ipynb`. Its code cells are plain Python
+and are syntax-checked by CI.
 
-After GitHub CI is green, record the exact `main` commit SHA and clone it:
+## 1. Bootstrap and verify
 
-```bash
-cd /kaggle/working
-git clone https://github.com/AnnyaB/SAM-WM.git
-cd SAM-WM
-git rev-parse HEAD
-python -m pip install -e '.[dev]'
-make verify
-```
+Run the first two notebook code cells. They:
 
-Do not continue if `make verify` fails.
+1. resolve one 40-character GitHub commit SHA;
+2. download only that source archive without printing credentials;
+3. safely reject archive traversal or link entries;
+4. install the package;
+5. run `make verify`;
+6. require a visible CUDA GPU before training.
 
-## 2. Train three independent seeds
+Do not continue if verification fails.
 
-```bash
-python train.py --seed 0 --out artifacts/freiburg
-python train.py --seed 1 --out artifacts/freiburg
-python train.py --seed 2 --out artifacts/freiburg
-```
+## 2. Train three seeds
 
-Expected checkpoint paths:
+Run seeds `0`, `1`, and `2` on Freiburg. Checkpoints are written to:
 
 ```text
 artifacts/freiburg/seed_0/best.pt
@@ -40,93 +41,93 @@ artifacts/freiburg/seed_1/best.pt
 artifacts/freiburg/seed_2/best.pt
 ```
 
-Only Freiburg validation MAE may be used for model selection.
+Checkpoint selection uses Freiburg validation MAE only.
 
-## 3. Inspect validation only
+## 3. Validation
 
-For each seed:
+Run the validation cell for all three seeds. Validation evidence is preserved separately:
 
-```bash
-python eval.py --checkpoint artifacts/freiburg/seed_0/best.pt \
-  --data freiburg --split validation --out artifacts/eval/seed_0
+```text
+artifacts/eval/seed_*/freiburg_validation_metrics.json
+artifacts/eval/seed_*/freiburg_validation_manifest.json
 ```
 
-Repeat for seeds 1 and 2. At this point architecture/configuration changes are still allowed if they were decided from training/validation evidence only. If any change is made, delete the experimental run artifacts and retrain all seeds from scratch before held-out access.
+If a model/data/config change is made from train/validation evidence, discard that experimental
+run and retrain all three seeds before opening any held-out metric.
 
 ## 4. Freeze
 
-Before opening any final/OOD labels, record:
+The freeze cell refuses to continue unless all three validation artifacts exist. It writes:
 
-```bash
-git rev-parse HEAD
-sha256sum config/train.yaml
-sha256sum artifacts/freiburg/seed_*/best.pt
+```text
+artifacts/FREEZE_MANIFEST.json
 ```
 
-No architecture, hyperparameter, preprocessing, split, or QC changes are allowed after this point for the reported run.
+containing the resolved source SHA, the frozen config SHA-256, all checkpoint SHA-256 values,
+and validation-artifact SHA-256 values.
 
-## 5. Open Freiburg final test once
+After this cell, no architecture, hyperparameter, preprocessing, split, or QC change is allowed
+for the reported run.
 
-For each seed, use a separate output directory. The evaluator writes `freiburg_HELDOUT_OPEN.json` before accessing labels and refuses a second opening in that directory.
+## 5. Freiburg final test
 
-```bash
-python eval.py --checkpoint artifacts/freiburg/seed_0/best.pt \
-  --data freiburg --split heldout --open-heldout --out artifacts/eval/seed_0
+Run once per seed with `--open-heldout`. The evaluator atomically writes
+`freiburg_HELDOUT_OPEN.json` before held-out metric computation and refuses a second opening in
+that seed output directory.
+
+Final evidence is separate from validation evidence:
+
+```text
+artifacts/eval/seed_*/freiburg_heldout_metrics.json
+artifacts/eval/seed_*/freiburg_heldout_manifest.json
 ```
 
-Repeat for seeds 1 and 2.
+## 6. OOD-1: Novi Sad
 
-## 6. OOD-1: Novi Sad zero-shot
+Run zero-shot after freeze. There is no fine-tuning and no Novi Sad recalibration. The loader
+uses the registered Zenodo archive and MD5 contract. Evidence is written as
+`novisad_heldout_*`.
 
-No fine-tuning and no recalibration on Novi Sad labels:
+## 7. OOD-2: FAIRUrbTemp
 
-```bash
-python eval.py --checkpoint artifacts/freiburg/seed_0/best.pt \
-  --data novisad --split heldout --open-heldout --out artifacts/eval/seed_0
-```
+Before viewing a SAM-WM FAIRUrbTemp result:
 
-Repeat for seeds 1 and 2.
+1. attach the official DOI `10.48620/93247` extracted input;
+2. set `FAIR_ROOT`;
+3. preregister one `FAIR_CITY`;
+4. use the same city for every seed.
 
-## 7. OOD-2: FAIRUrbTemp zero-shot
-
-Attach the official FAIRUrbTemp extracted directory and choose one city before looking at model results. Use the same city for all seeds.
-
-```bash
-FAIR=/kaggle/input/<official-fairurbtemp-dataset>/<extracted-root>
-CITY='<preregistered-city>'
-python eval.py --checkpoint artifacts/freiburg/seed_0/best.pt \
-  --data fairurbtemp --root "$FAIR" --city "$CITY" \
-  --split heldout --open-heldout --out artifacts/eval/seed_0
-```
-
-Repeat for seeds 1 and 2. Observation-level FAIRUrbTemp QC flags are excluded from scoring by the loader.
+The loader excludes observation-level QC-flagged values from scoring. There is no OOD
+fine-tuning or recalibration. Evidence is written as `fairurbtemp_heldout_*`.
 
 ## 8. Aggregate and plot
 
-```bash
-python summarize.py --root artifacts/eval --out artifacts/summary.json
-python plot.py \
-  artifacts/eval/seed_0/freiburg_metrics.json \
-  artifacts/eval/seed_0/novisad_metrics.json \
-  artifacts/eval/seed_0/fairurbtemp_metrics.json \
-  --out artifacts/figures/seed_0
-```
+`summarize.py` groups results by evaluation, so Freiburg validation cannot be mixed with
+Freiburg held-out evidence. The notebook then plots only:
 
-The summary across all three seeds is the result used in the paper/hackathon technical evidence. Never manually type metrics into figures or README tables.
+- Freiburg held-out;
+- Novi Sad held-out;
+- FAIRUrbTemp held-out.
 
-## 9. Save Kaggle artifacts
+Never manually type benchmark metrics into figures, README tables, or the demo.
 
-At minimum preserve:
+## Evidence chain
+
+Preserve at minimum:
 
 ```text
+artifacts/FROZEN_SOURCE_SHA.txt
+artifacts/FREEZE_MANIFEST.json
 artifacts/freiburg/seed_*/best.pt
 artifacts/freiburg/seed_*/history.json
 artifacts/freiburg/seed_*/resolved_config.json
+artifacts/eval/seed_*/freiburg_validation_*
 artifacts/eval/seed_*/*_HELDOUT_OPEN.json
-artifacts/eval/seed_*/*_manifest.json
-artifacts/eval/seed_*/*_metrics.json
+artifacts/eval/seed_*/*_heldout_manifest.json
+artifacts/eval/seed_*/*_heldout_metrics.json
 artifacts/summary.json
 artifacts/figures/
 ```
 
-These are the evidence chain. The trained checkpoint is promoted to the deployment/Hugging Face package only after this evaluation finishes.
+The trained checkpoint is promoted to the deployment/Hugging Face package only after the frozen
+evaluation completes.
