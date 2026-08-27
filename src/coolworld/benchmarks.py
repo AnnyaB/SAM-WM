@@ -65,6 +65,82 @@ def _complete_hourly_index(start: str, end: str) -> pd.DatetimeIndex:
     return pd.date_range(start, end, freq="h", inclusive="both", tz="UTC").tz_localize(None)
 
 
+def _canonicalize_freiburg_table(raw: pd.DataFrame) -> pd.DataFrame:
+    """Normalize the official Freiburg CSV into the published long-form contract.
+
+    Zenodo documents the semantic fields ``datetime_UTC``, ``station_id``,
+    ``variable``, ``value`` and ``data_type``. CSV readers should not make the
+    benchmark depend on superficial header case/BOM/whitespace, and some exported
+    copies expose the two variables as wide ``Ta_degC``/``RH_percent`` columns.
+    Both representations carry the same official semantics and are normalized here.
+    Unknown layouts fail closed with the observed columns instead of being guessed.
+    """
+    canonical_names = {
+        "datetime_utc": "datetime_UTC",
+        "station_id": "station_id",
+        "variable": "variable",
+        "value": "value",
+        "data_type": "data_type",
+        "ta_degc": "Ta_degC",
+        "rh_percent": "RH_percent",
+    }
+    rename: dict[object, str] = {}
+    for column in raw.columns:
+        normalized = str(column).lstrip("\ufeff").strip().casefold()
+        if normalized in canonical_names:
+            rename[column] = canonical_names[normalized]
+
+    df = raw.rename(columns=rename).copy()
+    if df.columns.duplicated().any():
+        duplicated = [str(column) for column in df.columns[df.columns.duplicated()].tolist()]
+        raise ValueError(f"Freiburg schema has duplicate canonical columns: {duplicated}")
+
+    common = {"datetime_UTC", "station_id", "data_type"}
+    if not common.issubset(df.columns):
+        missing = sorted(common - set(df.columns))
+        raise ValueError(
+            "Freiburg schema mismatch; "
+            f"missing {missing}; observed columns={list(map(str, raw.columns))}"
+        )
+
+    if {"variable", "value"}.issubset(df.columns):
+        long = df[["datetime_UTC", "station_id", "variable", "value", "data_type"]].copy()
+    elif {"Ta_degC", "RH_percent"}.issubset(df.columns):
+        pieces: list[pd.DataFrame] = []
+        for variable in ("Ta_degC", "RH_percent"):
+            piece = df[["datetime_UTC", "station_id", variable, "data_type"]].copy()
+            piece = piece.rename(columns={variable: "value"})
+            piece["variable"] = variable
+            pieces.append(piece)
+        long = pd.concat(pieces, ignore_index=True)
+        long = long[["datetime_UTC", "station_id", "variable", "value", "data_type"]]
+    else:
+        raise ValueError(
+            "Freiburg schema mismatch; expected long variable/value fields or official "
+            f"wide Ta_degC/RH_percent fields; observed columns={list(map(str, raw.columns))}"
+        )
+
+    variable_map = {"ta_degc": "Ta_degC", "rh_percent": "RH_percent"}
+    normalized_variable = long["variable"].astype(str).str.strip().str.casefold()
+    unexpected = sorted(set(normalized_variable) - set(variable_map))
+    if unexpected:
+        raise ValueError(f"Freiburg contains unexpected variables: {unexpected}")
+    long["variable"] = normalized_variable.map(variable_map)
+    long["value"] = pd.to_numeric(long["value"], errors="coerce")
+    long["data_type"] = long["data_type"].astype(str).str.strip().str.casefold()
+    unexpected_types = sorted(set(long["data_type"].dropna()) - {"observed", "imputed"})
+    if unexpected_types:
+        raise ValueError(f"Freiburg contains unexpected data_type values: {unexpected_types}")
+
+    duplicates = long.duplicated(["datetime_UTC", "station_id", "variable"], keep=False)
+    if duplicates.any():
+        raise ValueError(
+            "Freiburg contains duplicate station/time/variable rows; "
+            f"count={int(duplicates.sum())}"
+        )
+    return long
+
+
 def load_freiburg(
     root: str | Path = "data/freiburg", *, k: int = 4, download_if_missing: bool = True
 ) -> UrbanDataset:
@@ -87,11 +163,12 @@ def load_freiburg(
     if not data_path.exists() or not stats_path.exists():
         raise FileNotFoundError("official Freiburg files missing")
 
-    df = pd.read_csv(data_path)
-    required = {"datetime_UTC", "station_id", "variable", "value", "data_type"}
-    if not required.issubset(df.columns):
-        raise ValueError(f"Freiburg schema mismatch; missing {sorted(required - set(df.columns))}")
-    df["datetime_UTC"] = pd.to_datetime(df["datetime_UTC"], utc=True).dt.tz_localize(None)
+    df = _canonicalize_freiburg_table(pd.read_csv(data_path))
+    df["datetime_UTC"] = pd.to_datetime(
+        df["datetime_UTC"], utc=True, errors="coerce"
+    ).dt.tz_localize(None)
+    if df["datetime_UTC"].isna().any():
+        raise ValueError("Freiburg contains unparseable datetime_UTC values")
     df = df[df["station_id"].astype(str).str.fullmatch(r"FR[A-Z0-9]{4}", na=False)].copy()
     ids = tuple(sorted(df["station_id"].astype(str).unique()))
     if len(ids) < 30:
@@ -116,12 +193,29 @@ def load_freiburg(
         raise ValueError("unexpected Freiburg residual missingness after curated gap filling")
 
     stats = pd.read_csv(stats_path)
-    if "station_id" not in stats.columns:
-        raise ValueError("Freiburg statistics file missing station_id")
+    normalized_stats = {str(c).lstrip("\ufeff").strip().casefold(): c for c in stats.columns}
+    required_stats = {
+        "station_id": "station_id",
+        "latitude_degn": "latitude_degN",
+        "longitude_dege": "longitude_degE",
+        "elevation_masl": "elevation_masl",
+    }
+    rename_stats = {
+        normalized_stats[key]: canonical
+        for key, canonical in required_stats.items()
+        if key in normalized_stats
+    }
+    stats = stats.rename(columns=rename_stats)
+    missing_stats = sorted(set(required_stats.values()) - set(stats.columns))
+    if missing_stats:
+        raise ValueError(
+            "Freiburg statistics schema mismatch; "
+            f"missing {missing_stats}; observed columns={list(map(str, stats.columns))}"
+        )
     stats = stats.set_index("station_id").reindex(ids)
-    lat = stats["latitude_degN"].to_numpy(np.float32)
-    lon = stats["longitude_degE"].to_numpy(np.float32)
-    elev = stats["elevation_masl"].to_numpy(np.float32)
+    lat = pd.to_numeric(stats["latitude_degN"], errors="coerce").to_numpy(np.float32)
+    lon = pd.to_numeric(stats["longitude_degE"], errors="coerce").to_numpy(np.float32)
+    elev = pd.to_numeric(stats["elevation_masl"], errors="coerce").to_numpy(np.float32)
     if not np.isfinite(lat).all() or not np.isfinite(lon).all():
         raise ValueError("Freiburg coordinates missing")
     edge_index, edge_attr = knn_graph(lat, lon, k)
