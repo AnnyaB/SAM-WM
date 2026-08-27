@@ -21,6 +21,7 @@ from .fortyguard import completed_heatmap_records
 
 MIN_REPLAY_WINDOWS = 12
 MIN_REPLAY_COVERAGE = 0.80
+MAX_MAE_TO_RADIUS_RATIO = 1.0
 
 
 def _request_timestamp(request: dict[str, Any]) -> str | None:
@@ -91,19 +92,18 @@ def evaluate_provider_replay(
     frames: list[dict[str, Any]],
     out: Path,
 ) -> dict[str, Any]:
-    """Validate transfer to real FortyGuard TCM before enabling live predicted mode.
+    """Check operational transfer of the frozen SAM-WM on recorded FortyGuard TCM.
 
-    This is an application-domain compatibility gate, not a third paper OOD benchmark and
-    not evidence of a causal cooling effect.
+    This is an application-domain safety gate for the same SAM-WM checkpoint, not another
+    research model, not a third paper OOD benchmark, and not causal cooling evidence.
     """
     bundle = validate_deployment_bundle(checkpoint, calibration, evaluation)
     _, _, cfg, _ = load_checkpoint(checkpoint)
     context = int(cfg["context_hours"])
     horizon = int(cfg["horizon_hours"])
-    if len(frames) < context + horizon + MIN_REPLAY_WINDOWS - 1:
-        raise DeploymentError(
-            f"PROVIDER_REPLAY_REQUIRES_AT_LEAST_{context + horizon + MIN_REPLAY_WINDOWS - 1}_FRAMES"
-        )
+    minimum_frames = context + horizon + MIN_REPLAY_WINDOWS - 1
+    if len(frames) < minimum_frames:
+        raise DeploymentError(f"PROVIDER_REPLAY_REQUIRES_AT_LEAST_{minimum_frames}_FRAMES")
 
     timestamps = np.asarray([np.datetime64(frame["timestamp"], "s") for frame in frames])
     if np.isnat(timestamps).any() or not np.all(np.diff(timestamps) == np.timedelta64(1, "h")):
@@ -115,7 +115,7 @@ def evaluate_provider_replay(
         raise DeploymentError("PROVIDER_REPLAY_GRID_CHANGED")
 
     model_errors: list[np.ndarray] = []
-    persistence_errors: list[np.ndarray] = []
+    radii: list[float] = []
     covered = 0
     total = 0
     windows = 0
@@ -134,27 +134,38 @@ def evaluate_provider_replay(
         ]
         if expected != list(prediction["future_timestamps"]):
             raise DeploymentError("PROVIDER_REPLAY_TIMESTAMP_MISMATCH")
-        last = _frame_temperatures(frames[start - 1], tile_ids)
-        persistence = np.repeat(last[None, :], horizon, axis=0)
+
         error = pred - actual
-        model_errors.append(error.reshape(-1))
-        persistence_errors.append((persistence - actual).reshape(-1))
+        if not np.isfinite(error).all():
+            raise DeploymentError("PROVIDER_REPLAY_NONFINITE_ERROR")
         radius = float(prediction["baseline_conformal_radius_c"])
+        if not np.isfinite(radius) or radius <= 0:
+            raise DeploymentError("PROVIDER_REPLAY_INVALID_CONFORMAL_RADIUS")
+
+        model_errors.append(error.reshape(-1))
+        radii.append(radius)
         covered += int((np.abs(error) <= radius).sum())
         total += int(error.size)
         windows += 1
 
     if windows < MIN_REPLAY_WINDOWS:
         raise DeploymentError("PROVIDER_REPLAY_WINDOW_COUNT_INSUFFICIENT")
+    if not np.allclose(radii, radii[0], rtol=0.0, atol=1e-9):
+        raise DeploymentError("PROVIDER_REPLAY_CALIBRATION_CHANGED")
+
     model_error = np.concatenate(model_errors)
-    persistence_error = np.concatenate(persistence_errors)
     model_mae = float(np.abs(model_error).mean())
-    persistence_mae = float(np.abs(persistence_error).mean())
+    radius = float(radii[0])
     coverage = covered / total
-    pass_gate = model_mae <= persistence_mae and coverage >= MIN_REPLAY_COVERAGE
+    mae_to_radius_ratio = model_mae / radius
+    pass_gate = (
+        coverage >= MIN_REPLAY_COVERAGE
+        and mae_to_radius_ratio <= MAX_MAE_TO_RADIUS_RATIO
+    )
 
     payload = {
-        "protocol": "SAM_WM_FORTYGUARD_REPLAY_V1",
+        "protocol": "SAM_WM_FORTYGUARD_REPLAY_V2",
+        "model": "SAM-WM",
         "checkpoint_sha256": bundle.checkpoint_sha256,
         "grid_signature": next(iter(signatures)),
         "frame_count": len(frames),
@@ -164,13 +175,20 @@ def evaluate_provider_replay(
         "model_mae_c": model_mae,
         "model_rmse_c": float(np.sqrt(np.square(model_error).mean())),
         "model_bias_c": float(model_error.mean()),
-        "persistence_mae_c": persistence_mae,
+        "conformal_radius_c": radius,
+        "mae_to_radius_ratio": mae_to_radius_ratio,
+        "maximum_allowed_mae_to_radius_ratio": MAX_MAE_TO_RADIUS_RATIO,
         "conformal_coverage": coverage,
         "minimum_required_coverage": MIN_REPLAY_COVERAGE,
         "status": "PASS" if pass_gate else "FAIL",
+        "gate_definition": (
+            "Operational compatibility requires empirical interval coverage above the frozen "
+            "minimum and replay MAE no larger than the frozen Freiburg-validation conformal radius."
+        ),
         "claim_boundary": (
-            "Provider replay checks operational transfer to recorded FortyGuard TCM fields only. "
-            "It is not causal intervention evidence and is not a planetary-scale validation."
+            "Provider replay checks operational transfer of the same frozen SAM-WM to recorded "
+            "FortyGuard TCM fields only. It is not a second model comparison, causal intervention "
+            "evidence, a third paper OOD benchmark, or planetary-scale validation."
         ),
     }
     _write_json(out, payload)
@@ -184,8 +202,10 @@ def validate_provider_replay(path: Path, checkpoint_sha256: str) -> dict[str, An
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise DeploymentError("FORTYGUARD_REPLAY_INVALID") from exc
-    if not isinstance(payload, dict) or payload.get("protocol") != "SAM_WM_FORTYGUARD_REPLAY_V1":
+    if not isinstance(payload, dict) or payload.get("protocol") != "SAM_WM_FORTYGUARD_REPLAY_V2":
         raise DeploymentError("FORTYGUARD_REPLAY_INVALID")
+    if payload.get("model") != "SAM-WM":
+        raise DeploymentError("FORTYGUARD_REPLAY_WRONG_MODEL")
     if payload.get("checkpoint_sha256") != checkpoint_sha256:
         raise DeploymentError("FORTYGUARD_REPLAY_CHECKPOINT_HASH_MISMATCH")
     if payload.get("status") != "PASS":
@@ -195,4 +215,7 @@ def validate_provider_replay(path: Path, checkpoint_sha256: str) -> dict[str, An
     coverage = float(payload.get("conformal_coverage", float("nan")))
     if not np.isfinite(coverage) or coverage < MIN_REPLAY_COVERAGE:
         raise DeploymentError("FORTYGUARD_REPLAY_COVERAGE_INSUFFICIENT")
+    ratio = float(payload.get("mae_to_radius_ratio", float("nan")))
+    if not np.isfinite(ratio) or ratio > MAX_MAE_TO_RADIUS_RATIO:
+        raise DeploymentError("FORTYGUARD_REPLAY_ERROR_TOO_LARGE")
     return {**payload, "artifact_sha256": sha256_file(path)}

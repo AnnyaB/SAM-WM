@@ -42,20 +42,27 @@ def select_deployment_seed(
     source_sha_path: Path,
     out: Path,
 ) -> dict[str, Any]:
-    """Choose the deployment seed using Freiburg validation only, before held-out access."""
+    """Choose one SAM-WM seed using Freiburg validation only, before held-out access."""
     manifest = research_root / "PRE_FREEZE_MANIFEST.json"
     manifest_payload = _read_json(manifest)
+    if manifest_payload.get("protocol") != "SAM_WM_PRE_FREEZE_V2":
+        raise PromotionError("invalid SAM-WM pre-freeze manifest protocol")
+    if manifest_payload.get("model") != "SAM-WM":
+        raise PromotionError("pre-freeze manifest does not identify SAM-WM")
     if manifest_payload.get("heldout_or_ood_accessed") is not False:
         raise PromotionError("pre-freeze manifest does not certify held-out isolation")
 
     rows: list[tuple[float, int, Path, str]] = []
     for seed in RESEARCH_SEEDS:
-        metrics_path = research_root / "full" / f"seed_{seed}" / "validation_metrics.json"
+        seed_root = research_root / f"seed_{seed}"
+        metrics_path = seed_root / "validation_metrics.json"
         payload = _read_json(metrics_path)
+        if payload.get("model") != "SAM-WM":
+            raise PromotionError(f"seed {seed} artifact is not SAM-WM")
         if payload.get("heldout_or_ood_accessed") is not False:
             raise PromotionError(f"seed {seed} validation artifact is not development-only")
         mae = float(payload.get("validation", {}).get("mae", float("nan")))
-        checkpoint = research_root / "full" / f"seed_{seed}" / "best.pt"
+        checkpoint = seed_root / "best.pt"
         if not np.isfinite(mae) or not checkpoint.is_file():
             raise PromotionError(f"seed {seed} validation/checkpoint evidence incomplete")
         checkpoint_sha = sha256_file(checkpoint)
@@ -70,6 +77,7 @@ def select_deployment_seed(
 
     selection = {
         "protocol": "SAM_WM_DEPLOYMENT_SELECTION_V1",
+        "model": "SAM-WM",
         "selection_rule": "minimum Freiburg validation MAE; tie-break by ascending frozen seed",
         "heldout_or_ood_used_for_selection": False,
         "source_sha": source_sha,
@@ -90,10 +98,12 @@ def finalize_deployment_bundle(
     eval_root: Path,
     deployment_root: Path,
 ) -> dict[str, Any]:
-    """Promote one preselected checkpoint only after all frozen evaluations exist."""
+    """Promote the preselected SAM-WM checkpoint after all frozen evaluations exist."""
     selection = _read_json(selection_path)
     if selection.get("protocol") != "SAM_WM_DEPLOYMENT_SELECTION_V1":
         raise PromotionError("invalid deployment selection protocol")
+    if selection.get("model") != "SAM-WM":
+        raise PromotionError("deployment selection is not SAM-WM")
     if selection.get("heldout_or_ood_used_for_selection") is not False:
         raise PromotionError("deployment seed was not selected from validation only")
 
@@ -148,8 +158,8 @@ def finalize_deployment_bundle(
         "selection_sha256": sha256_file(selection_path),
         "required_evaluations": hashes,
         "claim_boundary": (
-            "These artifacts establish the frozen benchmark evidence only; they do not establish "
-            "a causal intervention effect or universal deployment safety."
+            "These artifacts establish the frozen SAM-WM benchmark evidence only; they do not "
+            "establish a causal intervention effect or universal deployment safety."
         ),
     }
     _write_json(deployment_root / "calibration.json", calibration)
@@ -157,6 +167,7 @@ def finalize_deployment_bundle(
 
     result = {
         "protocol": "SAM_WM_DEPLOYMENT_PROMOTION_V1",
+        "model": "SAM-WM",
         "selected_seed": seed,
         "checkpoint_sha256": checkpoint_sha,
         "calibration_sha256": sha256_file(deployment_root / "calibration.json"),

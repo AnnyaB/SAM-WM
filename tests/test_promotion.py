@@ -15,14 +15,21 @@ def write_json(path: Path, payload: dict) -> None:
 
 def test_preselection_uses_validation_only_and_finalize_preserves_hashes(tmp_path: Path):
     research = tmp_path / "research"
-    write_json(research / "PRE_FREEZE_MANIFEST.json", {"heldout_or_ood_accessed": False})
+    write_json(
+        research / "PRE_FREEZE_MANIFEST.json",
+        {
+            "protocol": "SAM_WM_PRE_FREEZE_V2",
+            "model": "SAM-WM",
+            "heldout_or_ood_accessed": False,
+        },
+    )
     source = tmp_path / "FROZEN_SOURCE_SHA.txt"
     source.write_text("a" * 40 + "\n", encoding="utf-8")
 
     maes = {17: 2.0, 29: 1.8, 42: 1.2, 73: 1.5, 101: 1.9}
     checkpoint_hashes = {}
     for seed in RESEARCH_SEEDS:
-        root = research / "full" / f"seed_{seed}"
+        root = research / f"seed_{seed}"
         root.mkdir(parents=True, exist_ok=True)
         checkpoint = root / "best.pt"
         checkpoint.write_bytes(f"checkpoint-{seed}".encode())
@@ -30,6 +37,7 @@ def test_preselection_uses_validation_only_and_finalize_preserves_hashes(tmp_pat
         write_json(
             root / "validation_metrics.json",
             {
+                "model": "SAM-WM",
                 "heldout_or_ood_accessed": False,
                 "checkpoint_sha256": sha256_file(checkpoint),
                 "validation": {"mae": maes[seed]},
@@ -38,6 +46,7 @@ def test_preselection_uses_validation_only_and_finalize_preserves_hashes(tmp_pat
 
     selection_path = tmp_path / "DEPLOYMENT_SELECTION.json"
     selection = select_deployment_seed(research, source, selection_path)
+    assert selection["model"] == "SAM-WM"
     assert selection["selected_seed"] == 42
     assert selection["heldout_or_ood_used_for_selection"] is False
 
@@ -58,6 +67,7 @@ def test_preselection_uses_validation_only_and_finalize_preserves_hashes(tmp_pat
 
     deployment = tmp_path / "deployment"
     result = finalize_deployment_bundle(selection_path, freeze, eval_root, deployment)
+    assert result["model"] == "SAM-WM"
     assert result["selected_seed"] == 42
     assert sha256_file(deployment / "best.pt") == selection["checkpoint_sha256"]
     assert json.loads((deployment / "calibration.json").read_text())["conformal_radius_c"] == 1.25

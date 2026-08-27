@@ -20,6 +20,6 @@ verify:
 train:
 	$(PYTHON) train.py --seed 17
 research:
-	$(PYTHON) research.py --stage all-pre-freeze
+	$(PYTHON) research.py --out artifacts/research
 serve:
 	uvicorn coolworld.app:app --reload --host 127.0.0.1 --port 8000

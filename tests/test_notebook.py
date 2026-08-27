@@ -18,17 +18,28 @@ def test_kaggle_notebook_code_cells_are_plain_valid_python():
         ast.parse(source, filename=f"{path}::cell-{index}")
 
 
-def test_kaggle_notebook_has_research_suite_and_freeze_before_heldout():
+def test_kaggle_notebook_is_single_samwm_pipeline_and_freezes_before_heldout():
     path = Path("notebooks/SAM_WM_KAGGLE.ipynb")
     notebook = json.loads(path.read_text(encoding="utf-8"))
-    source = "\n".join(
-        "".join(cell["source"]) for cell in notebook["cells"] if cell["cell_type"] == "code"
-    )
-    research_stage = source.index('"research.py"')
+    source = "\n".join("".join(cell["source"]) for cell in notebook["cells"])
+
+    train_suite = source.index('"research.py"')
+    preselect = source.index('"promote.py", "preselect"')
     freeze = source.index("FREEZE_MANIFEST.json")
     final_test = source.index('"--open-heldout"')
-    assert research_stage < freeze < final_test
+    finalize = source.index('"promote.py", "finalize"')
+
+    assert train_suite < preselect < freeze < final_test < finalize
     assert "SEEDS = (17, 29, 42, 73, 101)" in source
-    assert "PRE_FREEZE_MANIFEST.json" in source
+    assert "SAM_WM_PRE_FREEZE_V2" in source
     assert "GITHUB_TOKEN" in source
+    assert "artifacts/research/seed_" in source
+    assert "novisad" in source
+    assert "fairurbtemp" in source
+    assert "no_mental_map" not in source
+    assert "unconstrained_exchange" not in source
+    assert "no_sigreg" not in source
+    assert "temperature_only" not in source
+    assert "linear_trend" not in source
+    assert "daily_persistence" not in source
     assert "SAM_WM_V41_KAGGLE_INPUT.zip" not in source
