@@ -293,7 +293,9 @@ class SAMWorldModel(nn.Module):
         latent_target = None
         surprise = None
         if future_dynamic_target is not None:
-            latent_target = self._encode_frames(future_dynamic_target, static, future_time_hours).detach()
+            latent_target = self._encode_frames(
+                future_dynamic_target, static, future_time_hours
+            ).detach()
         if future_temperature_target is not None:
             scale = log_scale.exp().clamp_min(1e-4)
             surprise = (future_temperature_target - mean).abs() / scale + log_scale
@@ -323,9 +325,8 @@ def samwm_loss(
     pred_latent = (latent_err * mask).sum() / denom
     scale = output.temperature_log_scale.exp().clamp_min(1e-4)
     laplace_nll = (
-        (target_temperature - output.temperature_mean).abs() / scale
-        + output.temperature_log_scale
-    )
+        target_temperature - output.temperature_mean
+    ).abs() / scale + output.temperature_log_scale
     temp_nll = (laplace_nll * mask).sum() / denom
     pred_loss = pred_latent + temp_nll
     sig = sigreg(output.latent_pred[target_mask]) if target_mask.any() else pred_loss.new_zeros(())
