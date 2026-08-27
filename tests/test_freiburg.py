@@ -25,6 +25,20 @@ def test_released_header_with_five_field_rows_is_reconstructed(tmp_path: Path):
     assert pd.api.types.is_datetime64_ns_dtype(table["datetime_UTC"])
 
 
+def test_released_temperature_alias_is_canonicalized(tmp_path: Path):
+    path = tmp_path / "freiburg.csv"
+    path.write_text(
+        'datetime_UTC,station_id,"variable,value",data_type\n'
+        "2022-09-01T00:00:00Z,FRABCD,Ta_deg_C,20.5,observed\n"
+        "2022-09-01T00:00:00Z,FRABCD,RH_percent,55.0,observed\n",
+        encoding="utf-8",
+    )
+
+    table = read_freiburg_table(path)
+
+    assert table["variable"].tolist() == ["Ta_degC", "RH_percent"]
+
+
 def test_official_five_column_header_is_accepted(tmp_path: Path):
     path = tmp_path / "freiburg.csv"
     path.write_text(
@@ -36,6 +50,18 @@ def test_official_five_column_header_is_accepted(tmp_path: Path):
     table = read_freiburg_table(path)
     assert tuple(table.columns) == OFFICIAL_COLUMNS
     assert table.iloc[0]["value"] == 20.5
+
+
+def test_unknown_variable_fails_closed(tmp_path: Path):
+    path = tmp_path / "freiburg.csv"
+    path.write_text(
+        'datetime_UTC,station_id,"variable,value",data_type\n'
+        "2022-09-01T00:00:00Z,FRABCD,unknown_temperature,20.5,observed\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="unexpected variables"):
+        read_freiburg_table(path)
 
 
 def test_unknown_physical_layout_fails_closed(tmp_path: Path):
