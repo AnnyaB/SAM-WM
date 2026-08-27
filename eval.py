@@ -70,7 +70,9 @@ def main() -> None:
             protocol = "FROZEN_ID_FINAL_TEST_AFTER_VALIDATION_CALIBRATION"
     elif args.data == "novisad":
         if args.split != "heldout" or not args.open_heldout:
-            raise SystemExit("Novi Sad is zero-shot held-out data; use --split heldout --open-heldout")
+            raise SystemExit(
+                "Novi Sad is zero-shot held-out data; use --split heldout --open-heldout"
+            )
         ds = load_novisad(args.root or "data/novisad", k=int(cfg["graph_k"]))
         source = load_freiburg(cfg["data_root"], k=int(cfg["graph_k"]))
         radius = calibration_from_split(source, cfg, args.checkpoint)
@@ -78,7 +80,9 @@ def main() -> None:
         protocol = "ZERO_SHOT_NO_FINETUNE_NO_OOD_RECALIBRATION"
     else:
         if args.split != "heldout" or not args.open_heldout:
-            raise SystemExit("FAIRUrbTemp is zero-shot held-out data; use --split heldout --open-heldout")
+            raise SystemExit(
+                "FAIRUrbTemp is zero-shot held-out data; use --split heldout --open-heldout"
+            )
         if not args.root:
             raise SystemExit("--root is required for extracted FAIRUrbTemp DOI 10.48620/93247")
         ds = load_fairurbtemp(args.root, city=args.city, k=int(cfg["graph_k"]))
