@@ -27,6 +27,21 @@ def test_freiburg_long_schema_is_case_and_whitespace_robust():
     assert table["data_type"].tolist() == ["observed", "imputed"]
 
 
+def test_freiburg_released_combined_variable_value_field_is_split_strictly():
+    raw = pd.DataFrame(
+        {
+            "datetime_UTC": ["2022-09-01T00:00:00Z", "2022-09-01T00:00:00Z"],
+            "station_id": ["FRABCD", "FRABCD"],
+            "variable,value": ["Ta_degC,20.0", "RH_percent,55.0"],
+            "data_type": ["observed", "imputed"],
+        }
+    )
+    table = _canonicalize_freiburg_table(raw)
+    assert table["variable"].tolist() == ["Ta_degC", "RH_percent"]
+    assert table["value"].tolist() == [20.0, 55.0]
+    assert table["data_type"].tolist() == ["observed", "imputed"]
+
+
 def test_freiburg_wide_schema_is_normalized_to_published_long_contract():
     raw = pd.DataFrame(
         {
