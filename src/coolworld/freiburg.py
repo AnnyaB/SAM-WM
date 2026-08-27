@@ -18,6 +18,11 @@ EXPECTED_STATIONS = 41
 EXPECTED_HOURS = 8760
 OFFICIAL_COLUMNS = ("datetime_UTC", "station_id", "variable", "value", "data_type")
 RELEASE_HEADER = ("datetime_UTC", "station_id", "variable,value", "data_type")
+VARIABLE_ALIASES = {
+    "Ta_degC": "Ta_degC",
+    "Ta_deg_C": "Ta_degC",
+    "RH_percent": "RH_percent",
+}
 
 
 def _clean_header(row: list[str]) -> tuple[str, ...]:
@@ -51,6 +56,10 @@ def read_freiburg_table(path: str | Path) -> pd.DataFrame:
     contain five comma-separated fields. Pandas then silently shifts the first row
     field into the index. We detect that physical layout before pandas parsing and
     supply the documented five-column schema explicitly. Unknown layouts fail closed.
+
+    The Zenodo record documents ``Ta_degC`` for temperature, while the released file
+    observed in the Kaggle execution can contain ``Ta_deg_C``. Both are canonicalized
+    to the documented internal label ``Ta_degC`` before tensor construction.
     """
     path = Path(path)
     header, row_widths = _inspect_csv_shape(path)
@@ -75,7 +84,7 @@ def read_freiburg_table(path: str | Path) -> pd.DataFrame:
 
     table = table.copy()
     table["station_id"] = table["station_id"].astype(str).str.strip()
-    table["variable"] = table["variable"].astype(str).str.strip()
+    raw_variables = table["variable"].astype(str).str.strip()
     table["data_type"] = table["data_type"].astype(str).str.strip().str.casefold()
     table["value"] = pd.to_numeric(table["value"], errors="coerce")
 
@@ -84,10 +93,10 @@ def read_freiburg_table(path: str | Path) -> pd.DataFrame:
         examples = table.loc[invalid_station, "station_id"].head(3).tolist()
         raise ValueError(f"Freiburg contains invalid station IDs: {examples}")
 
-    allowed_variables = {"Ta_degC", "RH_percent"}
-    unexpected_variables = sorted(set(table["variable"].dropna()) - allowed_variables)
+    unexpected_variables = sorted(set(raw_variables.dropna()) - set(VARIABLE_ALIASES))
     if unexpected_variables:
         raise ValueError(f"Freiburg contains unexpected variables: {unexpected_variables}")
+    table["variable"] = raw_variables.map(VARIABLE_ALIASES)
 
     unexpected_types = sorted(set(table["data_type"].dropna()) - {"observed", "imputed"})
     if unexpected_types:
