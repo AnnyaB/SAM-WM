@@ -41,6 +41,40 @@ def _write_json(path: Path, payload: Any) -> None:
     tmp.replace(path)
 
 
+def preflight_dataset(ds: UrbanDataset, root: Path) -> dict[str, Any]:
+    """Validate the real Freiburg benchmark before any optimizer step is taken."""
+    if ds.name != "freiburg":
+        raise RuntimeError(f"preflight expected Freiburg, received {ds.name!r}")
+    if len(ds.station_ids) < 30:
+        raise RuntimeError(f"Freiburg preflight found only {len(ds.station_ids)} stations")
+    if ds.temperature.shape != ds.rh.shape or ds.temperature.shape != ds.observed_mask.shape:
+        raise RuntimeError("Freiburg temperature/RH/mask shapes disagree")
+    if ds.temperature.shape != (len(ds.timestamps), len(ds.station_ids)):
+        raise RuntimeError("Freiburg tensor dimensions disagree with timestamps/stations")
+    if ds.edge_index.ndim != 2 or ds.edge_index.shape[0] != 2:
+        raise RuntimeError("Freiburg graph edge_index has invalid shape")
+    if ds.edge_attr.ndim != 2 or ds.edge_attr.shape != (ds.edge_index.shape[1], 3):
+        raise RuntimeError("Freiburg graph edge_attr must be [E, 3]")
+
+    payload = {
+        "protocol": "SAM_WM_FREIBURG_PREFLIGHT_V1",
+        "dataset": ds.name,
+        "source": ds.source,
+        "n_timestamps": int(len(ds.timestamps)),
+        "n_nodes": int(len(ds.station_ids)),
+        "temperature_shape": list(map(int, ds.temperature.shape)),
+        "rh_shape": list(map(int, ds.rh.shape)),
+        "observed_target_fraction": float(ds.observed_mask.mean()),
+        "edge_count": int(ds.edge_index.shape[1]),
+        "edge_attr_dim": int(ds.edge_attr.shape[1]),
+        "start": str(ds.timestamps[0]),
+        "end": str(ds.timestamps[-1]),
+        "heldout_or_ood_accessed": False,
+    }
+    _write_json(root / "FREIBURG_PREFLIGHT.json", payload)
+    return payload
+
+
 def run_seed(
     ds: UrbanDataset,
     cfg: dict[str, Any],
@@ -109,6 +143,11 @@ def main() -> None:
     )
     parser.add_argument("--config", default="config/train.yaml")
     parser.add_argument("--out", default="artifacts/research")
+    parser.add_argument(
+        "--preflight-only",
+        action="store_true",
+        help="Load, checksum and validate real Freiburg data, then exit before training.",
+    )
     args = parser.parse_args()
 
     configure_reproducibility()
@@ -117,6 +156,11 @@ def main() -> None:
     ds = load_freiburg(cfg["data_root"], k=int(cfg["graph_k"]))
     root = Path(args.out)
     root.mkdir(parents=True, exist_ok=True)
+
+    preflight = preflight_dataset(ds, root)
+    print(json.dumps(preflight, indent=2, sort_keys=True), flush=True)
+    if args.preflight_only:
+        return
 
     for seed in RESEARCH_SEEDS:
         result = run_seed(ds, cfg, root, seed)
