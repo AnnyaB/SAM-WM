@@ -77,9 +77,7 @@ def write_pre_freeze_manifest(
     config_path: Path,
     dataset_name: str,
 ) -> None:
-    expected = [
-        root / f"seed_{seed}" / "validation_metrics.json" for seed in RESEARCH_SEEDS
-    ]
+    expected = [root / f"seed_{seed}" / "validation_metrics.json" for seed in RESEARCH_SEEDS]
     missing = [str(path) for path in expected if not path.is_file()]
     if missing:
         raise RuntimeError(

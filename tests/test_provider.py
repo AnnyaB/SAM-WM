@@ -74,9 +74,7 @@ def forecast_factory(base: np.datetime64, horizon: int, offset_c: float):
         for step in range(1, horizon + 1):
             idx = last_index + step
             values.append([30.0 + idx + offset_c, 31.0 + idx + offset_c])
-            timestamps.append(
-                np.datetime_as_string(base + idx * np.timedelta64(1, "h"), unit="s")
-            )
+            timestamps.append(np.datetime_as_string(base + idx * np.timedelta64(1, "h"), unit="s"))
         return {
             "tile_ids": ["a", "b"],
             "future_timestamps": timestamps,
@@ -114,7 +112,9 @@ def test_provider_replay_passes_same_samwm_when_coverage_and_error_gate_pass(mon
     assert provider.validate_provider_replay(out, "c" * 64)["status"] == "PASS"
 
 
-def test_provider_replay_fails_closed_when_same_samwm_error_exceeds_calibration(monkeypatch, tmp_path):
+def test_provider_replay_fails_closed_when_same_samwm_error_exceeds_calibration(
+    monkeypatch, tmp_path
+):
     context = 4
     horizon = 2
     frames, base = replay_frames(context, horizon)

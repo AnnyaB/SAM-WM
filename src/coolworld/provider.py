@@ -158,10 +158,7 @@ def evaluate_provider_replay(
     radius = float(radii[0])
     coverage = covered / total
     mae_to_radius_ratio = model_mae / radius
-    pass_gate = (
-        coverage >= MIN_REPLAY_COVERAGE
-        and mae_to_radius_ratio <= MAX_MAE_TO_RADIUS_RATIO
-    )
+    pass_gate = coverage >= MIN_REPLAY_COVERAGE and mae_to_radius_ratio <= MAX_MAE_TO_RADIUS_RATIO
 
     payload = {
         "protocol": "SAM_WM_FORTYGUARD_REPLAY_V2",
