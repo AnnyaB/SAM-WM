@@ -108,7 +108,9 @@ def evaluate_provider_replay(
     timestamps = np.asarray([np.datetime64(frame["timestamp"], "s") for frame in frames])
     if np.isnat(timestamps).any() or not np.all(np.diff(timestamps) == np.timedelta64(1, "h")):
         raise DeploymentError("PROVIDER_REPLAY_REQUIRES_CONSECUTIVE_HOURLY_FRAMES")
-    signatures = {frame.get("grid_signature") or grid_signature(frame["map_data"]) for frame in frames}
+    signatures = {
+        frame.get("grid_signature") or grid_signature(frame["map_data"]) for frame in frames
+    }
     if len(signatures) != 1:
         raise DeploymentError("PROVIDER_REPLAY_GRID_CHANGED")
 
