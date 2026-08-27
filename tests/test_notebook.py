@@ -31,7 +31,7 @@ def test_kaggle_notebook_is_single_samwm_pipeline_and_freezes_before_heldout():
 
     train_suite = source.index('"research.py"')
     preselect = source.index('"promote.py", "preselect"')
-    freeze = source.index("FREEZE_MANIFEST.json")
+    freeze = source.index('REPO / "artifacts/FREEZE_MANIFEST.json"')
     final_test = source.index('"--open-heldout"')
     finalize = source.index('"promote.py", "finalize"')
 
