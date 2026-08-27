@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import torch
-
 import research
+import torch
 from coolworld.samwm import SAMWorldModel, SIGReg
 
 
