@@ -102,7 +102,10 @@ def _has_consecutive_hourly_context(frames: list[dict[str, Any]], count: int = 4
         stamps = [datetime.fromisoformat(str(frame["timestamp"])) for frame in selected]
     except (TypeError, ValueError):
         return False
-    return all((right - left).total_seconds() == 3600 for left, right in zip(stamps, stamps[1:]))
+    return all(
+        (right - left).total_seconds() == 3600
+        for left, right in zip(stamps, stamps[1:], strict=False)
+    )
 
 
 @app.get("/")
