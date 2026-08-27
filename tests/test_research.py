@@ -9,6 +9,7 @@ import torch
 
 from coolworld import research
 from coolworld.benchmarks import UrbanDataset
+from coolworld.freiburg import EXPECTED_HOURS, EXPECTED_STATIONS
 
 
 def test_research_contract_is_one_model_and_five_frozen_seeds():
@@ -18,27 +19,27 @@ def test_research_contract_is_one_model_and_five_frozen_seeds():
 
 
 def test_freiburg_preflight_writes_evidence_without_heldout_access(tmp_path: Path):
-    n_timestamps = 48
-    n_nodes = 30
-    temperature = np.ones((n_timestamps, n_nodes), dtype=np.float32)
+    temperature = np.ones((EXPECTED_HOURS, EXPECTED_STATIONS), dtype=np.float32)
     ds = UrbanDataset(
         name="freiburg",
-        timestamps=np.arange(n_timestamps),
+        timestamps=np.arange(EXPECTED_HOURS),
         temperature=temperature,
         rh=np.ones_like(temperature),
         observed_mask=np.ones_like(temperature, dtype=bool),
-        station_ids=tuple(f"FR{i:04d}" for i in range(n_nodes)),
-        lat=np.linspace(47.9, 48.1, n_nodes, dtype=np.float32),
-        lon=np.linspace(7.7, 7.9, n_nodes, dtype=np.float32),
-        elevation=np.zeros(n_nodes, dtype=np.float32),
+        station_ids=tuple(f"FR{i:04d}" for i in range(EXPECTED_STATIONS)),
+        lat=np.linspace(47.9, 48.1, EXPECTED_STATIONS, dtype=np.float32),
+        lon=np.linspace(7.7, 7.9, EXPECTED_STATIONS, dtype=np.float32),
+        elevation=np.zeros(EXPECTED_STATIONS, dtype=np.float32),
         edge_index=torch.zeros((2, 4), dtype=torch.long),
         edge_attr=torch.zeros((4, 3), dtype=torch.float32),
         source="doi:10.5281/zenodo.12732565",
     )
 
     payload = research.preflight_dataset(ds, tmp_path)
-    assert payload["protocol"] == "SAM_WM_FREIBURG_PREFLIGHT_V1"
+    assert payload["protocol"] == "SAM_WM_FREIBURG_PREFLIGHT_V2"
     assert payload["dataset"] == "freiburg"
+    assert payload["n_nodes"] == EXPECTED_STATIONS
+    assert payload["n_timestamps"] == EXPECTED_HOURS
     assert payload["heldout_or_ood_accessed"] is False
     assert (tmp_path / "FREIBURG_PREFLIGHT.json").is_file()
 
