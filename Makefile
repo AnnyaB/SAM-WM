@@ -1,5 +1,5 @@
 PYTHON ?= python
-PY_SCRIPTS = train.py eval.py research.py fortyguard_check.py plot.py summarize.py
+PY_SCRIPTS = train.py eval.py research.py promote.py provider_replay.py candra_fit.py fortyguard_check.py plot.py summarize.py
 
 .PHONY: install install-app test lint format-check verify train research serve
 install:
