@@ -10,9 +10,10 @@ from typing import Any
 
 import torch
 
-from .benchmarks import UrbanDataset, load_freiburg, save_manifest
+from .benchmarks import UrbanDataset, save_manifest
 from .config import load_yaml
 from .experiment import evaluate_split, train_model
+from .freiburg import EXPECTED_HOURS, EXPECTED_STATIONS, load_freiburg
 
 RESEARCH_SEEDS = (17, 29, 42, 73, 101)
 
@@ -45,19 +46,29 @@ def preflight_dataset(ds: UrbanDataset, root: Path) -> dict[str, Any]:
     """Validate the real Freiburg benchmark before any optimizer step is taken."""
     if ds.name != "freiburg":
         raise RuntimeError(f"preflight expected Freiburg, received {ds.name!r}")
-    if len(ds.station_ids) < 30:
-        raise RuntimeError(f"Freiburg preflight found only {len(ds.station_ids)} stations")
+    if len(ds.station_ids) != EXPECTED_STATIONS:
+        raise RuntimeError(
+            f"Freiburg preflight expected {EXPECTED_STATIONS} stations, "
+            f"received {len(ds.station_ids)}"
+        )
+    if len(ds.timestamps) != EXPECTED_HOURS:
+        raise RuntimeError(
+            f"Freiburg preflight expected {EXPECTED_HOURS} hours, received {len(ds.timestamps)}"
+        )
     if ds.temperature.shape != ds.rh.shape or ds.temperature.shape != ds.observed_mask.shape:
         raise RuntimeError("Freiburg temperature/RH/mask shapes disagree")
-    if ds.temperature.shape != (len(ds.timestamps), len(ds.station_ids)):
-        raise RuntimeError("Freiburg tensor dimensions disagree with timestamps/stations")
+    if ds.temperature.shape != (EXPECTED_HOURS, EXPECTED_STATIONS):
+        raise RuntimeError(
+            f"Freiburg tensor dimensions are {ds.temperature.shape}; "
+            f"expected {(EXPECTED_HOURS, EXPECTED_STATIONS)}"
+        )
     if ds.edge_index.ndim != 2 or ds.edge_index.shape[0] != 2:
         raise RuntimeError("Freiburg graph edge_index has invalid shape")
     if ds.edge_attr.ndim != 2 or ds.edge_attr.shape != (ds.edge_index.shape[1], 3):
         raise RuntimeError("Freiburg graph edge_attr must be [E, 3]")
 
     payload = {
-        "protocol": "SAM_WM_FREIBURG_PREFLIGHT_V1",
+        "protocol": "SAM_WM_FREIBURG_PREFLIGHT_V2",
         "dataset": ds.name,
         "source": ds.source,
         "n_timestamps": int(len(ds.timestamps)),
