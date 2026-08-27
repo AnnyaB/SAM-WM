@@ -105,8 +105,7 @@ def read_freiburg_table(path: str | Path) -> pd.DataFrame:
     duplicates = table.duplicated(["datetime_UTC", "station_id", "variable"], keep=False)
     if duplicates.any():
         raise ValueError(
-            "Freiburg contains duplicate station/time/variable rows; "
-            f"count={int(duplicates.sum())}"
+            f"Freiburg contains duplicate station/time/variable rows; count={int(duplicates.sum())}"
         )
 
     return table
@@ -185,7 +184,9 @@ def load_freiburg(
         raise ValueError("Freiburg gap-filled tensors still contain missing values")
 
     stats = pd.read_csv(stats_path)
-    normalized = {str(column).lstrip("\ufeff").strip().casefold(): column for column in stats.columns}
+    normalized = {
+        str(column).lstrip("\ufeff").strip().casefold(): column for column in stats.columns
+    }
     required = {
         "station_id": "station_id",
         "latitude_degn": "latitude_degN",
@@ -193,9 +194,7 @@ def load_freiburg(
         "elevation_masl": "elevation_masl",
     }
     rename = {
-        normalized[key]: canonical
-        for key, canonical in required.items()
-        if key in normalized
+        normalized[key]: canonical for key, canonical in required.items() if key in normalized
     }
     stats = stats.rename(columns=rename)
     missing = sorted(set(required.values()) - set(stats.columns))
