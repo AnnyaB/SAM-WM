@@ -1,6 +1,46 @@
 from pathlib import Path
 
-from coolworld.benchmarks import _parse_sef_file
+import pandas as pd
+
+from coolworld.benchmarks import _canonicalize_freiburg_table, _parse_sef_file
+
+
+def test_freiburg_long_schema_is_case_and_whitespace_robust():
+    raw = pd.DataFrame(
+        {
+            " datetime_UTC ": ["2022-09-01T00:00:00Z", "2022-09-01T00:00:00Z"],
+            "station_id": ["FRABCD", "FRABCD"],
+            "Variable": ["Ta_degC", "RH_percent"],
+            "Value": [20.0, 55.0],
+            "data_type": ["Observed", "IMPUTED"],
+        }
+    )
+    table = _canonicalize_freiburg_table(raw)
+    assert list(table.columns) == [
+        "datetime_UTC",
+        "station_id",
+        "variable",
+        "value",
+        "data_type",
+    ]
+    assert table["variable"].tolist() == ["Ta_degC", "RH_percent"]
+    assert table["data_type"].tolist() == ["observed", "imputed"]
+
+
+def test_freiburg_wide_schema_is_normalized_to_published_long_contract():
+    raw = pd.DataFrame(
+        {
+            "datetime_UTC": ["2022-09-01T00:00:00Z"],
+            "station_id": ["FRABCD"],
+            "Ta_degC": [20.0],
+            "RH_percent": [55.0],
+            "data_type": ["observed"],
+        }
+    )
+    table = _canonicalize_freiburg_table(raw)
+    assert table.shape == (2, 5)
+    assert set(table["variable"]) == {"Ta_degC", "RH_percent"}
+    assert table["value"].tolist() == [20.0, 55.0]
 
 
 def test_fairurbtemp_qc_flag_is_not_scored_as_ground_truth(tmp_path: Path):
