@@ -341,9 +341,7 @@ def run_stage(ds: UrbanDataset, cfg: dict[str, Any], root: Path, stage: str) -> 
         for seed in RESEARCH_SEEDS:
             result = run_variant(ds, cfg, root, name=name, seed=seed)
             print(
-                json.dumps(
-                    {"name": name, "seed": seed, "val_mae": result["validation"]["mae"]}
-                ),
+                json.dumps({"name": name, "seed": seed, "val_mae": result["validation"]["mae"]}),
                 flush=True,
             )
 
