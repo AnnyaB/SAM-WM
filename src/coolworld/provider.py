@@ -16,6 +16,7 @@ from .deployment import (
     validate_deployment_bundle,
 )
 from .evidence import sha256_file
+from .experiment import load_checkpoint
 from .fortyguard import completed_heatmap_records
 
 MIN_REPLAY_WINDOWS = 12
@@ -96,9 +97,7 @@ def evaluate_provider_replay(
     not evidence of a causal cooling effect.
     """
     bundle = validate_deployment_bundle(checkpoint, calibration, evaluation)
-    _, _, cfg, _ = __import__("coolworld.experiment", fromlist=["load_checkpoint"]).load_checkpoint(
-        checkpoint
-    )
+    _, _, cfg, _ = load_checkpoint(checkpoint)
     context = int(cfg["context_hours"])
     horizon = int(cfg["horizon_hours"])
     if len(frames) < context + horizon + MIN_REPLAY_WINDOWS - 1:
