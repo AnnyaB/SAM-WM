@@ -16,6 +16,15 @@ def digest_json(data: Any) -> str:
     return hashlib.sha256(canonical_json(data)).hexdigest()
 
 
+def sha256_file(path: str | Path) -> str:
+    """Return a streaming SHA-256 digest without loading the artifact into memory."""
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def atomic_json(path: str | Path, data: Any) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
