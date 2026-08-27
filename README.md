@@ -1,37 +1,48 @@
 # SAM-WM
 
-**Sparse Adaptive Mechanism World Model for evidence-bounded urban thermal intelligence**
+### Sparse Adaptive Mechanism World Model for evidence-bounded urban thermal intelligence
 
-SAM-WM is Krsna's research + deployment project for FortyGuard Hackathon'26. It learns a compact urban thermal world model from real trajectories, evaluates zero-shot transfer to unseen cities, and keeps physical cooling claims behind an independent causal-evidence gate (CANDRA).
+**SAM-WM** is Krsna's compact research world model and CoolWorld deployment stack for the
+FortyGuard Hackathon'26. The repository is organized so that the scientific contribution,
+benchmark protocol, real-provider evidence path, and 3D application are inspectable without
+mixing training artifacts into source control.
 
-> Scientific boundary: SAM-WM forecasts temperature dynamics. It does **not** turn an observational forecast into a causal intervention effect. Missing evidence produces an abstention, never a fabricated cooling number.
+> **Scientific boundary.** SAM-WM predicts urban thermal dynamics and supports
+> evidence-constrained planning. It does not convert an observational forecast into a causal
+> cooling effect. Unsupported interventions return **ABSTAIN / MODEL_NOT_READY** rather than a
+> fabricated temperature reduction.
 
-## Core idea
+## Model
 
-The model represents a city as a sparse physical mental map and composes four typed mechanisms at every node/time step:
+A city is represented as a sparse physical mental map. At each node and forecast step the model
+combines four typed mechanisms:
 
-1. **conservative exchange** — antisymmetric pair flux with a discrete maximum-principle bound;
-2. **wind transport** — conservative upwind transport, enabled only when wind is actually observed;
-3. **source/sink forcing** — bounded unresolved local forcing;
-4. **bounded residual** — deliberately smaller residual capacity for dynamics not captured above.
+1. **Conservative exchange** — antisymmetric pair flux with a discrete maximum-principle bound.
+2. **Wind transport** — conservative upwind transport, enabled only when wind is actually present.
+3. **Source/sink forcing** — bounded unresolved local forcing.
+4. **Bounded residual** — deliberately limited residual capacity.
 
-A compact recurrent latent state performs multi-step "dreaming". A state-dependent router chooses the mechanism mixture. Training uses predictive latent/temperature loss plus SIGReg. The architecture is intentionally sparse: physical locality is encoded by kNN edges with direction and distance rather than dense all-pairs attention.
+A compact recurrent latent state performs multi-step rollout; a state-dependent router selects the
+mechanism mixture. Training combines predictive latent/temperature learning with SIGReg. Spatial
+execution is sparse, approximately `O(E)`, rather than dense all-pairs attention.
 
-This is a research hypothesis, not a pre-declared SOTA result. Performance claims are made only from frozen experiment artifacts.
+The design is an original SAM-WM research hypothesis. SIGReg is attributed to the public
+LeWorldModel work; SAM-WM does not claim authorship of SIGReg or copy LeWM's pixel architecture.
 
 ## Repository
 
 ```text
 SAM-WM/
 ├── README.md
-├── train.py
-├── eval.py
-├── fortyguard_check.py
-├── plot.py
+├── train.py                 # one full SAM-WM training run
+├── research.py              # pre-freeze baselines, 7 ablations, controls, 5 seeds
+├── eval.py                  # validation + one-time held-out / zero-shot OOD gates
+├── fortyguard_check.py      # bounded real FortyGuard request
 ├── summarize.py
+├── plot.py
 ├── config/
 ├── src/coolworld/
-│   ├── samwm.py        # core contribution
+│   ├── samwm.py             # core contribution
 │   ├── graph.py
 │   ├── benchmarks.py
 │   ├── experiment.py
@@ -39,25 +50,100 @@ SAM-WM/
 │   ├── fortyguard.py
 │   ├── evidence.py
 │   └── app.py
-├── static/             # 3D evidence UI
-├── tests/
+├── static/                  # CoolWorld 3D browser interface
 ├── notebooks/
+├── tests/
 └── docs/
 ```
 
-The core contribution remains easy to find in `src/coolworld/samwm.py`, following the same codebase discipline that makes LeWorldModel's contribution easy to inspect in `jepa.py`.
+This follows the same codebase discipline that makes LeWorldModel's contribution easy to find:
+the core model stays compact, while experiment and deployment concerns remain separate.
 
-## Real benchmark protocol
+## Real benchmark contract
 
-**ID training/validation/final test:** Freiburg urban air-temperature sensor network, DOI `10.5281/zenodo.12732565`.
+The source repository contains the loaders, checksums, graph construction, chronology, windowing,
+normalization rules, QC handling, held-out gates, metrics, and OOD protocol. Dataset binaries and
+learned checkpoints are deliberately not committed.
 
-**OOD-1:** Novi Sad urban sensor network, DOI `10.5281/zenodo.7738094`, evaluated zero-shot with no target fine-tuning and no OOD recalibration.
+**ID train / validation / final test**
 
-**OOD-2:** FAIRUrbTemp, DOI `10.48620/93247`, evaluated zero-shot on an unseen city. Observation-level QC flags are filtered from scoring; the original dataset intentionally retains flagged measurements, so filtering is the evaluator's responsibility.
+- Freiburg urban air-temperature sensor network — DOI `10.5281/zenodo.12732565`.
+- Train-only normalization and train-only physical source-bound estimation.
+- Validation-only early stopping.
+- Final test opened only after the experiment freeze.
 
-The cross-city representation uses city-centred local x/y and relative elevation, not raw absolute latitude/longitude. Missing relative humidity is accompanied by an explicit modality-availability mask. The admissible source scale is derived only from observed **training** temperature increments. Forecast windows must also remain hourly-contiguous; gaps are never silently treated as one physical time step.
+**OOD-1**
 
-## Installation
+- Novi Sad urban sensor network — DOI `10.5281/zenodo.7738094`.
+- Zero-shot; no target fine-tuning and no OOD recalibration.
+
+**OOD-2**
+
+- FAIRUrbTemp — DOI `10.48620/93247`.
+- One unseen city preregistered before results are viewed.
+- Observation-level `qc=` flags are excluded from scoring.
+- Zero-shot; no target fine-tuning and no OOD recalibration.
+
+Cross-city inputs use city-centred local x/y and relative elevation rather than absolute
+latitude/longitude. Missing relative humidity has an explicit availability channel. Forecast
+windows must remain hourly-contiguous.
+
+## Pre-freeze research suite
+
+`research.py` is intentionally **validation-only**. It cannot open Freiburg held-out or either OOD
+target. It runs the complete model-selection/diagnostic suite before the final benchmark is touched.
+
+Frozen research seeds:
+
+```text
+17, 29, 42, 73, 101
+```
+
+Structural ablations, each retrained from scratch on every seed:
+
+```text
+no_mental_map
+no_exchange
+unconstrained_exchange
+no_source_sink
+no_residual
+uniform_router
+no_temporal_memory
+```
+
+Objective controls:
+
+```text
+no_sigreg
+temperature_only
+```
+
+The `temperature_only` control removes the predictive latent term while retaining the same
+temperature likelihood and SIGReg, so the predictive-state objective is tested rather than merely
+described.
+
+Validation sanity baselines are computed under the exact same SAM-WM window contract:
+
+```text
+persistence
+linear_trend
+daily_persistence
+```
+
+These are sanity baselines, not relabelled external SOTA reproductions. Any future paper comparison
+against external author code must preserve the upstream method name, exact source revision, license,
+adapter, split, and deviations.
+
+Run all pre-freeze research:
+
+```bash
+python research.py --stage all-pre-freeze --out artifacts/research
+```
+
+It produces `artifacts/research/PRE_FREEZE_MANIFEST.json` containing hashes of the frozen
+development/validation evidence and explicitly records that no held-out/OOD target was accessed.
+
+## Installation and verification
 
 ```bash
 python3.11 -m venv .venv
@@ -67,74 +153,70 @@ python -m pip install -e '.[dev,app]'
 make verify
 ```
 
-Python 3.11 and 3.12 are supported. CI checks both.
+CI verifies Python 3.11 and 3.12, compiles the source and all executable scripts, runs Ruff lint and
+format checks, and runs the test suite.
 
-## Training
+## Kaggle execution
 
-The frozen configuration is `config/train.yaml`.
+Use `notebooks/SAM_WM_KAGGLE.ipynb` and `docs/KAGGLE_PROTOCOL.md`.
 
-```bash
-python train.py --seed 0 --out artifacts/freiburg
-python train.py --seed 1 --out artifacts/freiburg
-python train.py --seed 2 --out artifacts/freiburg
-```
+The notebook:
 
-Model selection uses Freiburg validation MAE only. Do not inspect final-test/OOD results while tuning.
+1. resolves one exact GitHub source SHA and verifies the repository;
+2. requires a real Kaggle GPU;
+3. executes the validation-only research suite across five frozen seeds;
+4. lets the researcher inspect Freiburg validation evidence only;
+5. writes `artifacts/FREEZE_MANIFEST.json`;
+6. opens Freiburg final test once per seed;
+7. evaluates Novi Sad zero-shot;
+8. evaluates preregistered FAIRUrbTemp unseen-city zero-shot;
+9. aggregates machine-readable evidence and figures.
 
-## Validation and held-out evaluation
+A material architecture/protocol change after the freeze defines a new research version and requires
+a new untouched confirmatory benchmark.
 
-Validation can be rerun during development:
+## Metrics
 
-```bash
-python eval.py \
-  --checkpoint artifacts/freiburg/seed_0/best.pt \
-  --data freiburg --split validation \
-  --out artifacts/eval/seed_0
-```
+Saved benchmark artifacts include:
 
-Validation and final-test artifacts have different filenames, so the final evaluation cannot overwrite the evidence used for model selection. Held-out metric computation is deliberately gated: `eval.py` atomically writes a receipt before computing held-out metrics and refuses to reopen the same held-out dataset in that output directory.
+- MAE and RMSE;
+- bias and p95 absolute error;
+- horizon-wise MAE/RMSE;
+- split-conformal coverage;
+- mean model surprise;
+- parameter count;
+- inference latency;
+- observed target count.
 
-```bash
-python eval.py --checkpoint artifacts/freiburg/seed_0/best.pt \
-  --data freiburg --split heldout --open-heldout --out artifacts/eval/seed_0
-
-python eval.py --checkpoint artifacts/freiburg/seed_0/best.pt \
-  --data novisad --split heldout --open-heldout --out artifacts/eval/seed_0
-
-python eval.py --checkpoint artifacts/freiburg/seed_0/best.pt \
-  --data fairurbtemp --root /path/to/extracted/FAIRUrbTemp --city <city> \
-  --split heldout --open-heldout --out artifacts/eval/seed_0
-```
-
-Repeat with seeds 1 and 2 using separate `artifacts/eval/seed_<n>` directories, then aggregate:
-
-```bash
-python summarize.py --root artifacts/eval --out artifacts/summary.json
-```
-
-The aggregator groups by evaluation (`freiburg_validation`, `freiburg_heldout`, `novisad_heldout`, `fairurbtemp_heldout`) so development evidence cannot be mixed into final/OOD evidence. Metrics include MAE, RMSE, bias, p95 absolute error, horizon-wise MAE/RMSE, conformal coverage, surprise, parameter count, and inference latency.
-
-For Kaggle, use `notebooks/SAM_WM_KAGGLE.ipynb` and follow `docs/KAGGLE_PROTOCOL.md`. The notebook resolves one exact GitHub source SHA, verifies the repository, records checkpoint/config/validation hashes before held-out evaluation, and uses a Kaggle Secret named `GITHUB_TOKEN` only when private-repository access is required.
+Every final number must come from a saved artifact. Do not manually type metrics into the README,
+figures, or demo.
 
 ## FortyGuard evidence
 
-The FortyGuard API key is never committed. Configure it locally/server-side:
+The API key is never committed.
 
 ```bash
 export FORTYGUARD_API_KEY='...'
-```
-
-A real heatmap request is:
-
-```bash
 python fortyguard_check.py \
   --date 2026-08-27 --time 12:00 \
   --aoi examples/sanjose_aoi.geojson --granularity 100
 ```
 
-The client is asynchronous and crash-resumable: it persists the exact request intent before POST, saves the provider `activity_id`, resumes polling the same activity after restart, content-addresses completed responses, and never automatically re-posts an ambiguous request.
+The client is asynchronous, crash-resumable and fail-closed: request intent is persisted before
+POST, provider `activity_id` is saved, ambiguous POSTs are not blindly repeated, completed
+responses are content-addressed, and provenance is preserved for the UI.
 
-## 3D UI
+## CANDRA action-evidence gate
+
+`src/coolworld/candra.py` contains the conservative causal-evidence boundary. Its temporal
+block-bootstrap difference-in-differences estimator is only valid when a genuine treated/control
+design and its assumptions are independently justified.
+
+Observational forecasting data alone cannot identify shade/canopy/pavement cooling effects. Low
+support, overlapping uncertainty, missing transfer evidence, or absent intervention data produces
+an abstention.
+
+## CoolWorld 3D UI
 
 Run locally:
 
@@ -142,47 +224,57 @@ Run locally:
 make serve
 ```
 
-or with Docker:
+or:
 
 ```bash
 docker build -t sam-wm .
 docker run --rm -p 8000:8000 -e FORTYGUARD_API_KEY sam-wm
 ```
 
-The browser interface separates three truth states:
+The browser separates three truth states:
 
 - **OBSERVED** — real FortyGuard/map evidence;
-- **REAL REPLAY** — only attributable intervention pre/post/control evidence;
-- **PREDICTED FUTURE** — only after a frozen checkpoint, calibration, compatible context, and CANDRA action evidence are promoted.
+- **REAL REPLAY** — immutable attributable recorded evidence;
+- **PREDICTED FUTURE** — only after a frozen trained checkpoint and calibration are promoted.
 
-The UI never replaces an unavailable upstream field with sample temperatures and never labels a modelled value as observed.
+The interface contains the real 3D map/building layer, thermal field, AOI, timeline, synchronized
+baseline/intervention future views, uncertainty/support, pipeline readiness, evidence/activity
+hashes and agent console. It never generates placeholder temperatures or labels model output as
+observed.
 
-## CANDRA
-
-`src/coolworld/candra.py` provides the conservative action-evidence boundary. Its temporal block-bootstrap difference-in-differences estimator is only valid after the treated/control assumptions have been independently justified. Low support, overlapping uncertainty, or absent intervention evidence produces an abstention.
+The final learned checkpoint is intentionally not committed before training. After frozen
+evaluation, one selected checkpoint/calibration bundle is promoted into deployment and the UI is
+visually tested end-to-end before public hosting and the final demo video.
 
 ## FortyGuard Hackathon'26
 
-Current official guidance reviewed through 27 Aug 2026 prioritizes:
+Official guidance reviewed through **27 Aug 2026 (Day 8)**:
 
 - Impact & Relevance — 40%
 - Technical Execution — 35%
 - Innovation — 15%
 - Communication — 10%
+- Deadline — **30 Aug 2026, 11:59 PM GST**
+- Final package — submission form, public/no-login live demo, working demo video no longer than
+  3 minutes with voiceover, and code repository.
 
-Submission deadline: **30 Aug 2026, 11:59 PM GST**. Final delivery requires the official form, a public/no-login live demo, a demo video no longer than 3 minutes, and a code repository. See `docs/HACKATHON.md` and `docs/KAGGLE_PROTOCOL.md`.
+See `docs/HACKATHON.md`.
 
 ## Claim policy
 
-Until frozen experiments prove otherwise, this repository does **not** claim:
+Before frozen experiments, this repository does **not** claim:
 
-- state of the art;
-- human-level/child-level general intelligence;
+- universal or state-of-the-art superiority;
+- human-child-level general intelligence;
 - AGI/ASI;
-- a guaranteed urban cooling effect;
-- top-0.01% hackathon placement or a specific judging score.
+- a guaranteed causal cooling effect;
+- planetary-scale deployment safety;
+- a guaranteed hackathon score or placement.
 
-What it does claim is testable: sparse physically typed dynamics, explicit missing-modality handling, training-only physical bounds, zero-shot cross-city evaluation, calibrated uncertainty, auditable FortyGuard evidence, and causal abstention when intervention support is insufficient.
+What the source code already makes testable is narrower and stronger: compact sparse world-model
+dynamics, physically typed mechanism composition, explicit missing-modality handling, train-only
+physical bounds, one-time held-out evaluation, two real zero-shot OOD domains, uncertainty,
+surprise, intervention abstention, auditable provider evidence, and a real 3D deployment surface.
 
 ## License
 

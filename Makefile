@@ -1,6 +1,7 @@
 PYTHON ?= python
+PY_SCRIPTS = train.py eval.py research.py fortyguard_check.py plot.py summarize.py
 
-.PHONY: install install-app test lint format-check verify train serve
+.PHONY: install install-app test lint format-check verify train research serve
 install:
 	$(PYTHON) -m pip install -e '.[dev]'
 install-app:
@@ -8,15 +9,17 @@ install-app:
 test:
 	$(PYTHON) -m pytest
 lint:
-	ruff check src tests train.py eval.py fortyguard_check.py plot.py summarize.py
+	ruff check src tests $(PY_SCRIPTS)
 format-check:
-	ruff format --check src tests train.py eval.py fortyguard_check.py plot.py summarize.py
+	ruff format --check src tests $(PY_SCRIPTS)
 verify:
-	$(PYTHON) -m compileall -q src train.py eval.py fortyguard_check.py plot.py summarize.py
-	ruff check src tests train.py eval.py fortyguard_check.py plot.py summarize.py
-	ruff format --check src tests train.py eval.py fortyguard_check.py plot.py summarize.py
+	$(PYTHON) -m compileall -q src $(PY_SCRIPTS)
+	ruff check src tests $(PY_SCRIPTS)
+	ruff format --check src tests $(PY_SCRIPTS)
 	$(PYTHON) -m pytest
 train:
-	$(PYTHON) train.py --seed 0
+	$(PYTHON) train.py --seed 17
+research:
+	$(PYTHON) research.py --stage all-pre-freeze
 serve:
 	uvicorn coolworld.app:app --reload --host 127.0.0.1 --port 8000
