@@ -12,13 +12,13 @@ from typing import Any
 import numpy as np
 import torch
 from torch import Tensor, nn
+from train import configure_reproducibility
 
 import coolworld.experiment as experiment
 from coolworld.benchmarks import UrbanDataset, load_freiburg, save_manifest
 from coolworld.config import load_yaml
 from coolworld.experiment import evaluate_split, make_starts, train_model
 from coolworld.samwm import EDGE_DIM, SAMWMOutput, SAMWorldModel, SIGReg
-from train import configure_reproducibility
 
 RESEARCH_SEEDS = (17, 29, 42, 73, 101)
 ABLATIONS = (
