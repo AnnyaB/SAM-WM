@@ -12,9 +12,7 @@ def _toy_inputs():
     context_time = torch.arange(4, dtype=torch.float32).unsqueeze(0)
     future_time = torch.arange(4, 6, dtype=torch.float32).unsqueeze(0)
     edge_index = torch.tensor([[0, 1], [1, 2]], dtype=torch.long)
-    edge_attr = torch.tensor(
-        [[1.0, 0.0, 0.5], [0.0, 1.0, 0.7]], dtype=torch.float32
-    )
+    edge_attr = torch.tensor([[1.0, 0.0, 0.5], [0.0, 1.0, 0.7]], dtype=torch.float32)
     future_dynamic = torch.randn(1, 2, 3, 3)
     future_temperature = torch.randn(1, 2, 3)
     return (
