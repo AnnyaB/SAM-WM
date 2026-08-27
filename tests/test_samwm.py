@@ -4,75 +4,76 @@ from coolworld.samwm import SAMWorldModel, SIGReg, samwm_loss
 
 
 def fixture():
-    b, t, n, h = 2, 8, 6, 3
-    x = torch.randn(b, t, n, 2)
-    static = torch.randn(b, n, 3)
-    ct = torch.arange(t).float().repeat(b, 1)
-    ft = torch.arange(t, t + h).float().repeat(b, 1)
-    pairs = []
-    for i in range(n - 1):
-        pairs.append((i, i + 1))
-    ei = torch.tensor(pairs).t().long()
-    ea = torch.tensor([[1.0, 0.0]] * len(pairs))
-    fut = torch.randn(b, h, n, 2)
-    temp = torch.randn(b, h, n)
-    mask = torch.ones(b, h, n, dtype=torch.bool)
-    return x, static, ct, ft, ei, ea, fut, temp, mask
+    batch, context, nodes, horizon = 2, 8, 6, 3
+    x = torch.randn(batch, context, nodes, 3)
+    static = torch.randn(batch, nodes, 3)
+    context_time = torch.arange(context).float().repeat(batch, 1)
+    future_time = torch.arange(context, context + horizon).float().repeat(batch, 1)
+    pairs = [(i, i + 1) for i in range(nodes - 1)]
+    edge_index = torch.tensor(pairs).t().long()
+    edge_attr = torch.tensor([[1.0, 0.0, 0.1]] * len(pairs))
+    future = torch.randn(batch, horizon, nodes, 3)
+    temp = torch.randn(batch, horizon, nodes)
+    mask = torch.ones(batch, horizon, nodes, dtype=torch.bool)
+    return x, static, context_time, future_time, edge_index, edge_attr, future, temp, mask
 
 
 def test_forward_and_backward():
-    x, s, ct, ft, ei, ea, fut, temp, mask = fixture()
-    m = SAMWorldModel(hidden_dim=32)
-    out = m(x, s, ct, ft, ei, ea, future_dynamic_target=fut, future_temperature_target=temp)
-    assert out.temperature_mean.shape == temp.shape
-    loss, _ = samwm_loss(out, temp, mask, SIGReg(num_proj=16), 0.01)
+    x, static, ct, ft, edge_index, edge_attr, future, temp, mask = fixture()
+    model = SAMWorldModel(hidden_dim=32)
+    output = model(
+        x,
+        static,
+        ct,
+        ft,
+        edge_index,
+        edge_attr,
+        future_dynamic_target=future,
+        future_temperature_target=temp,
+    )
+    assert output.temperature_mean.shape == temp.shape
+    loss, _ = samwm_loss(output, temp, mask, SIGReg(num_proj=16), 0.01)
     loss.backward()
-    assert any(p.grad is not None for p in m.parameters())
+    assert any(parameter.grad is not None for parameter in model.parameters())
 
 
 def test_exchange_conserves_pair_flux():
-    x, s, ct, ft, ei, ea, _, _, _ = fixture()
-    m = SAMWorldModel(hidden_dim=32)
-    out = m(x, s, ct, ft, ei, ea)
-    assert float(out.exchange_conservation_error.detach()) < 1e-5
+    x, static, ct, ft, edge_index, edge_attr, _, _, _ = fixture()
+    model = SAMWorldModel(hidden_dim=32)
+    output = model(x, static, ct, ft, edge_index, edge_attr)
+    assert float(output.exchange_conservation_error.detach()) < 1e-5
 
 
-def test_missing_wind_is_valid():
-    x, s, ct, ft, ei, ea, _, _, _ = fixture()
-    m = SAMWorldModel(hidden_dim=32)
-    a = m(x, s, ct, ft, ei, ea).temperature_mean
-    assert torch.isfinite(a).all()
+def test_missing_wind_masks_transport_router():
+    x, static, ct, ft, edge_index, edge_attr, _, _, _ = fixture()
+    model = SAMWorldModel(hidden_dim=32)
+    output = model(x, static, ct, ft, edge_index, edge_attr)
+    assert torch.isfinite(output.temperature_mean).all()
+    assert torch.all(output.mechanism_weights[..., 1] < 1e-7)
 
 
 def test_sigreg_has_trainable_gradient():
-    x, s, ct, ft, ei, ea, fut, temp, mask = fixture()
-    m = SAMWorldModel(hidden_dim=32)
-    out = m(x, s, ct, ft, ei, ea, future_dynamic_target=fut)
-    reg = SIGReg(num_proj=16)(out.latent_pred[mask])
-    reg.backward()
-    assert m.latent_dynamics.weight_hh.grad is not None
-    assert torch.isfinite(m.latent_dynamics.weight_hh.grad).all()
+    x, static, ct, ft, edge_index, edge_attr, future, _, mask = fixture()
+    model = SAMWorldModel(hidden_dim=32)
+    output = model(x, static, ct, ft, edge_index, edge_attr, future_dynamic_target=future)
+    regularizer = SIGReg(num_proj=16)(output.latent_pred[mask])
+    regularizer.backward()
+    assert model.latent_dynamics.weight_hh.grad is not None
+    assert torch.isfinite(model.latent_dynamics.weight_hh.grad).all()
 
 
 def test_exchange_obeys_global_maximum_principle():
-    x, s, ct, ft, ei, ea, _, _, _ = fixture()
-    m = SAMWorldModel(hidden_dim=32)
+    x, static, ct, _, edge_index, edge_attr, _, _, _ = fixture()
+    model = SAMWorldModel(hidden_dim=32)
     with torch.no_grad():
-        enc = m._encode_frames(x, s, ct)
-        b, t, n, _ = x.shape
-        seq = enc.permute(0, 2, 1, 3).reshape(b * n, t, m.hidden_dim)
-        _, hn = m.temporal(seq)
-        z = hn[-1].view(b, n, m.hidden_dim)
+        enc = model._encode_frames(x, static, ct)
+        batch, context, nodes, _ = x.shape
+        seq = enc.permute(0, 2, 1, 3).reshape(batch * nodes, context, model.hidden_dim)
+        _, hidden = model.temporal(seq)
+        latent = hidden[-1].view(batch, nodes, model.hidden_dim)
         temp = x[:, -1, :, 0]
-        weight = torch.ones(b, ei.shape[1])
-        delta, _ = m.exchange(temp, z, ei, ea, weight)
-        nxt = temp + delta
-        assert (nxt >= temp.min(dim=1, keepdim=True).values - 1e-6).all()
-        assert (nxt <= temp.max(dim=1, keepdim=True).values + 1e-6).all()
-
-
-def test_transport_router_is_masked_without_wind():
-    x, s, ct, ft, ei, ea, _, _, _ = fixture()
-    m = SAMWorldModel(hidden_dim=32)
-    out = m(x, s, ct, ft, ei, ea)
-    assert torch.all(out.mechanism_weights[..., 1] < 1e-7)
+        weight = torch.ones(batch, edge_index.shape[1])
+        delta, _ = model.exchange(temp, latent, edge_index, edge_attr, weight)
+        next_temp = temp + delta
+        assert (next_temp >= temp.min(dim=1, keepdim=True).values - 1e-6).all()
+        assert (next_temp <= temp.max(dim=1, keepdim=True).values + 1e-6).all()

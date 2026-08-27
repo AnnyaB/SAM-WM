@@ -1,7 +1,9 @@
 name: SAM-WM
-dynamic_features: [temperature, relative_humidity]
-static_features: [latitude, longitude, elevation]
+dynamic_features: [temperature, relative_humidity, relative_humidity_available]
+static_features: [local_x, local_y, relative_elevation]
+edge_features: [unit_x, unit_y, log1p_distance_km]
 hidden_dim: 64
 mechanisms: [conservative_exchange, wind_transport_if_observed, source_sink, bounded_residual]
 sparse_graph_k: 4
 objective: prediction_plus_SIGReg
+causal_intervention_effects: delegated_to_CANDRA

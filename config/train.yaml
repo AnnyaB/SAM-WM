@@ -1,4 +1,4 @@
-# Frozen hackathon protocol. Do not tune on the final Freiburg test or OOD labels.
+# Frozen SAM-WM benchmark protocol. Never tune on final-test or OOD labels.
 data_root: data/freiburg
 graph_k: 4
 context_hours: 48
@@ -8,7 +8,7 @@ splits:
   val: ['2023-05-01T00:00:00', '2023-06-30T23:00:00']
   test: ['2023-07-01T00:00:00', '2023-08-31T23:00:00']
 hidden_dim: 64
-max_source_step_normalized: 0.35
+source_bound_quantile: 0.995
 residual_fraction: 0.20
 lambda_sig: 0.01
 sigreg_projections: 256

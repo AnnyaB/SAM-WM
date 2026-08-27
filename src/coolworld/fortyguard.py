@@ -21,12 +21,12 @@ class FortyGuardResult:
 
 
 class FortyGuardClient:
-    """Minimal fail-closed, crash-resumable FortyGuard Temperature API client.
+    """Fail-closed, crash-resumable FortyGuard Temperature API client.
 
-    A request intent is persisted before POST. Once an activity id is known, every
-    restart resumes that exact provider activity instead of posting again. An
-    ambiguous POST transport failure is never retried automatically because the
-    server may already have accepted the request.
+    The request intent and exact payload are persisted before POST. Once an
+    ``activity_id`` is known, restarts resume that provider activity rather than
+    spending another request. An ambiguous POST transport failure is never retried
+    automatically because the provider may already have accepted it.
     """
 
     def __init__(
@@ -37,7 +37,7 @@ class FortyGuardClient:
         self.key = os.getenv("FORTYGUARD_API_KEY", "")
         if not self.key:
             raise RuntimeError("FORTYGUARD_API_KEY is not configured")
-        self.base_url = base_url.rstrip("/")
+        self.base_url = os.getenv("FORTYGUARD_BASE_URL", base_url).rstrip("/")
         self.evidence_dir = Path(evidence_dir)
         self.evidence_dir.mkdir(parents=True, exist_ok=True)
         (self.evidence_dir / "responses").mkdir(parents=True, exist_ok=True)
@@ -48,7 +48,22 @@ class FortyGuardClient:
         state = json.loads(path.read_text(encoding="utf-8"))
         if state.get("request_sha256") != request_hash:
             raise RuntimeError(f"FORTYGUARD_REQUEST_REGISTRY_HASH_MISMATCH: {path}")
+        stored_payload = state.get("request_payload")
+        if stored_payload is not None and digest_json(stored_payload) != request_hash:
+            raise RuntimeError(f"FORTYGUARD_REQUEST_PAYLOAD_HASH_MISMATCH: {path}")
         return state
+
+    def _registry_payload(
+        self,
+        request_hash: str,
+        request_payload: dict[str, Any],
+        **extra: Any,
+    ) -> dict[str, Any]:
+        return {
+            "request_sha256": request_hash,
+            "request_payload": request_payload,
+            **extra,
+        }
 
     def heatmap(self, payload: dict[str, Any], *, max_wait_s: int = 300) -> FortyGuardResult:
         request_hash = digest_json(payload)
@@ -78,10 +93,11 @@ class FortyGuardClient:
         if not activity_id:
             atomic_json(
                 registry,
-                {
-                    "request_sha256": request_hash,
-                    "state": "INTENT_TO_SUBMIT",
-                },
+                self._registry_payload(
+                    request_hash,
+                    payload,
+                    state="INTENT_TO_SUBMIT",
+                ),
             )
             try:
                 with httpx.Client(timeout=45) as client:
@@ -93,12 +109,13 @@ class FortyGuardClient:
             except httpx.RequestError as exc:
                 atomic_json(
                     registry,
-                    {
-                        "request_sha256": request_hash,
-                        "state": "AMBIGUOUS_POST_REQUIRES_REVIEW",
-                        "error_type": type(exc).__name__,
-                        "error": str(exc),
-                    },
+                    self._registry_payload(
+                        request_hash,
+                        payload,
+                        state="AMBIGUOUS_POST_REQUIRES_REVIEW",
+                        error_type=type(exc).__name__,
+                        error=str(exc),
+                    ),
                 )
                 raise RuntimeError(
                     "FortyGuard POST outcome is ambiguous; refusing automatic retry"
@@ -107,12 +124,13 @@ class FortyGuardClient:
             if response.status_code >= 400:
                 atomic_json(
                     registry,
-                    {
-                        "request_sha256": request_hash,
-                        "state": "SUBMIT_REJECTED",
-                        "http_status": response.status_code,
-                        "response_excerpt": response.text[:1000],
-                    },
+                    self._registry_payload(
+                        request_hash,
+                        payload,
+                        state="SUBMIT_REJECTED",
+                        http_status=response.status_code,
+                        response_excerpt=response.text[:1000],
+                    ),
                 )
                 response.raise_for_status()
 
@@ -121,19 +139,21 @@ class FortyGuardClient:
             if not activity_id:
                 atomic_json(
                     registry,
-                    {
-                        "request_sha256": request_hash,
-                        "state": "SUBMIT_RESPONSE_WITHOUT_ACTIVITY_ID",
-                    },
+                    self._registry_payload(
+                        request_hash,
+                        payload,
+                        state="SUBMIT_RESPONSE_WITHOUT_ACTIVITY_ID",
+                    ),
                 )
                 raise RuntimeError("FortyGuard submit response did not contain activity_id")
             atomic_json(
                 registry,
-                {
-                    "request_sha256": request_hash,
-                    "activity_id": activity_id,
-                    "state": "SUBMITTED_PENDING",
-                },
+                self._registry_payload(
+                    request_hash,
+                    payload,
+                    activity_id=activity_id,
+                    state="SUBMITTED_PENDING",
+                ),
             )
 
         deadline = time.monotonic() + max_wait_s
@@ -161,11 +181,12 @@ class FortyGuardClient:
             if status in {"failed", "error"}:
                 atomic_json(
                     registry,
-                    {
-                        "request_sha256": request_hash,
-                        "activity_id": activity_id,
-                        "state": "PROVIDER_FAILED",
-                    },
+                    self._registry_payload(
+                        request_hash,
+                        payload,
+                        activity_id=activity_id,
+                        state="PROVIDER_FAILED",
+                    ),
                 )
                 raise RuntimeError(f"FortyGuard activity failed: {activity_id}")
 
@@ -175,13 +196,14 @@ class FortyGuardClient:
                 atomic_json(response_path, body)
                 atomic_json(
                     registry,
-                    {
-                        "request_sha256": request_hash,
-                        "activity_id": activity_id,
-                        "content_sha256": content_hash,
-                        "response_path": str(response_path),
-                        "state": "COMPLETED",
-                    },
+                    self._registry_payload(
+                        request_hash,
+                        payload,
+                        activity_id=activity_id,
+                        content_sha256=content_hash,
+                        response_path=str(response_path),
+                        state="COMPLETED",
+                    ),
                 )
                 return FortyGuardResult(activity_id, body, request_hash, content_hash)
 
@@ -191,3 +213,34 @@ class FortyGuardClient:
         raise TimeoutError(
             f"bounded polling exhausted for activity {activity_id}; registry preserved for resume"
         )
+
+
+def completed_heatmap_records(evidence_dir: str | Path) -> list[dict[str, Any]]:
+    """Return verified completed request/response records without exposing credentials."""
+    root = Path(evidence_dir)
+    records: list[dict[str, Any]] = []
+    for registry in sorted(root.glob("*.activity.json")):
+        state = json.loads(registry.read_text(encoding="utf-8"))
+        if state.get("state") != "COMPLETED":
+            continue
+        request_payload = state.get("request_payload")
+        request_hash = str(state.get("request_sha256", ""))
+        content_hash = str(state.get("content_sha256", ""))
+        if not isinstance(request_payload, dict) or digest_json(request_payload) != request_hash:
+            continue
+        response_path = root / "responses" / f"{content_hash}.json"
+        if not response_path.exists():
+            continue
+        response = json.loads(response_path.read_text(encoding="utf-8"))
+        if digest_json(response) != content_hash:
+            continue
+        records.append(
+            {
+                "activity_id": str(state.get("activity_id", "")),
+                "request_sha256": request_hash,
+                "content_sha256": content_hash,
+                "request_payload": request_payload,
+                "response": response,
+            }
+        )
+    return records

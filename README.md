@@ -2,196 +2,186 @@
 
 **Sparse Adaptive Mechanism World Model for evidence-bounded urban thermal intelligence**
 
-SAM-WM is a compact research system for learning reusable urban thermal mechanisms from real sensor networks, forecasting short-horizon temperature fields, testing zero-shot cross-city transfer, and handing physical intervention decisions to a separate evidence layer (CANDRA). It is designed for the FortyGuard Hackathon'26 and as a reproducible foundation for later peer-reviewed research.
+SAM-WM is Krsna's research + deployment project for FortyGuard Hackathon'26. It learns a compact urban thermal world model from real trajectories, evaluates zero-shot transfer to unseen cities, and keeps physical cooling claims behind an independent causal-evidence gate (CANDRA).
 
-> **Truth boundary.** SAM-WM predicts thermal futures. It does not claim a tree, shade structure, or reflective pavement causes a particular temperature reduction unless independent treated/control evidence supports that effect. CANDRA abstains when such evidence is missing or weak.
+> Scientific boundary: SAM-WM forecasts temperature dynamics. It does **not** turn an observational forecast into a causal intervention effect. Missing evidence produces an abstention, never a fabricated cooling number.
 
-## Why this is different
+## Core idea
 
-SAM-WM encodes four ideas directly in the model:
+The model represents a city as a sparse physical mental map and composes four typed mechanisms at every node/time step:
 
-1. **Sparse mental map.** A k-nearest-neighbour city graph is computed once from station geometry, so message passing is O(E), not dense O(N²).
-2. **Reusable mechanism library.** Future temperature evolves through conservative exchange, optional observed-wind transport, bounded source/sink forcing, and a deliberately small residual mechanism.
-3. **Dream + surprise.** The latent state is rolled forward autoregressively; probabilistic forecast error becomes a violation-of-expectation signal rather than an unqualified claim of "understanding".
-4. **Evidence-bounded action.** Intervention effects are handled separately by CANDRA. Forecast accuracy alone never licenses a causal cooling claim.
+1. **conservative exchange** — antisymmetric pair flux with a discrete maximum-principle bound;
+2. **wind transport** — conservative upwind transport, enabled only when wind is actually observed;
+3. **source/sink forcing** — bounded unresolved local forcing;
+4. **bounded residual** — deliberately smaller residual capacity for dynamics not captured above.
 
-The objective intentionally follows the compact design philosophy of LeWorldModel: a predictive objective plus one representation regularizer,
+A compact recurrent latent state performs multi-step "dreaming". A state-dependent router chooses the mechanism mixture. Training uses predictive latent/temperature loss plus SIGReg. The architecture is intentionally sparse: physical locality is encoded by kNN edges with direction and distance rather than dense all-pairs attention.
 
-`L = L_pred + lambda_SIG * L_SIGReg`,
+This is a research hypothesis, not a pre-declared SOTA result. Performance claims are made only from frozen experiment artifacts.
 
-with physical structure expressed in the operators rather than a large hand-weighted penalty collection.
-
-## Repository layout
+## Repository
 
 ```text
 SAM-WM/
-├── train.py                 # primary Freiburg training
-├── eval.py                  # ID final test + zero-shot OOD
-├── fortyguard_check.py      # one real, auditable API request
-├── plot.py                  # paper/demo figures from saved metrics
-├── config/                  # frozen experiment protocol
+├── README.md
+├── train.py
+├── eval.py
+├── fortyguard_check.py
+├── plot.py
+├── summarize.py
+├── config/
 ├── src/coolworld/
-│   ├── samwm.py             # core world model
-│   ├── graph.py             # sparse city graph
-│   ├── benchmarks.py        # real dataset loaders
-│   ├── experiment.py        # training/eval/calibration
-│   ├── candra.py            # causal evidence / abstention
-│   ├── fortyguard.py        # crash-safe FortyGuard client
-│   └── evidence.py          # content-addressed provenance helpers
+│   ├── samwm.py        # core contribution
+│   ├── graph.py
+│   ├── benchmarks.py
+│   ├── experiment.py
+│   ├── candra.py
+│   ├── fortyguard.py
+│   ├── evidence.py
+│   └── app.py
+├── static/             # 3D evidence UI
 ├── tests/
-├── docs/
-└── notebooks/SAM_WM_KAGGLE.ipynb
+├── notebooks/
+└── docs/
 ```
 
-The 3D UI is intentionally **not included in this branch yet**. The existing UI should be previewed and approved locally before it is wired to the trained checkpoint and pushed.
+The core contribution remains easy to find in `src/coolworld/samwm.py`, following the same codebase discipline that makes LeWorldModel's contribution easy to inspect in `jepa.py`.
 
-## Primary benchmark — Freiburg
+## Real benchmark protocol
 
-Source: **Street-level weather station network in Freiburg, Germany: Curated dataset from 2022-09-01 to 2023-08-31 [L2]**, DOI `10.5281/zenodo.12732565`.
+**ID training/validation/final test:** Freiburg urban air-temperature sensor network, DOI `10.5281/zenodo.12732565`.
 
-The official curated file contains hourly air temperature and relative humidity, station identity, and an `observed` / `imputed` label. SAM-WM uses the WSN stations (`FR****`) and preserves that label. Imputed context values can preserve temporal continuity, but **test metrics are computed only on observed target values**.
+**OOD-1:** Novi Sad urban sensor network, DOI `10.5281/zenodo.7738094`, evaluated zero-shot with no target fine-tuning and no OOD recalibration.
 
-Frozen split:
+**OOD-2:** FAIRUrbTemp, DOI `10.48620/93247`, evaluated zero-shot on an unseen city. Observation-level QC flags are filtered from scoring; the original dataset intentionally retains flagged measurements, so filtering is the evaluator's responsibility.
 
-```text
-train       2022-09-03 .. 2023-04-30
-validation  2023-05-01 .. 2023-06-30
-final test  2023-07-01 .. 2023-08-31
-context     48 h
-horizon     6 h
+The cross-city representation uses city-centred local x/y and relative elevation, not raw absolute latitude/longitude. Missing relative humidity is accompanied by an explicit modality-availability mask. The admissible source scale is derived only from observed **training** temperature increments.
+
+## Installation
+
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e '.[dev,app]'
+make verify
 ```
 
-This split is **our preregistered SAM-WM protocol**, not a claim that it is the split used by the dataset authors.
+Python 3.11 and 3.12 are supported. CI checks both.
 
-## Zero-shot OOD
+## Training
 
-### OOD-1 — Novi Sad NSUNET
+The frozen configuration is `config/train.yaml`.
 
-DOI `10.5281/zenodo.7738094`. Twelve urban sites, hourly air temperature, 2016–2017. No fine-tuning and no OOD-label recalibration are permitted. The Freiburg checkpoint and Freiburg validation conformal radius are frozen before evaluation.
+```bash
+python train.py --seed 0 --out artifacts/freiburg
+python train.py --seed 1 --out artifacts/freiburg
+python train.py --seed 2 --out artifacts/freiburg
+```
 
-### OOD-2 — FAIRUrbTemp
+Model selection uses Freiburg validation MAE only. Do not inspect final-test/OOD results while tuning.
 
-Scientific Data 2026, DOI `10.1038/s41597-026-06804-4`; data DOI `10.48620/93247`. FAIRUrbTemp contains standardized, quality-controlled street-level urban temperature data across 12 European cities in Station Exchange Format (SEF).
+## Validation and held-out evaluation
 
-The BORIS portal distributes city archives rather than one stable direct file URL. Download and extract the official archive into a Kaggle dataset/input directory, then run:
+Validation can be rerun during development:
 
 ```bash
 python eval.py \
   --checkpoint artifacts/freiburg/seed_0/best.pt \
-  --data fairurbtemp \
-  --root /kaggle/input/fairurbtemp-extracted \
-  --city <city-name> \
+  --data freiburg --split validation \
   --out artifacts/eval/seed_0
 ```
 
-The loader fails closed if it cannot unambiguously identify at least five hourly temperature SEF stations with a common interval. It does not silently guess a schema.
-
-## Install
+Final test and OOD access are deliberately gated. `eval.py` atomically writes a receipt **before** reading held-out labels and refuses to reopen the same held-out dataset in that output directory.
 
 ```bash
-# Registered local/CI/Kaggle interpreter contract: CPython 3.12.
-# Use the interpreter by absolute/path-local executable, not a shell `pytest` shim.
-python3.12 -m venv .venv
-./.venv/bin/python -m pip install --upgrade pip
-./.venv/bin/python -m pip install -e '.[dev]'
-./.venv/bin/python -m compileall -q src train.py eval.py fortyguard_check.py plot.py summarize.py
-./.venv/bin/python -m pytest
+python eval.py --checkpoint artifacts/freiburg/seed_0/best.pt \
+  --data freiburg --split heldout --open-heldout --out artifacts/eval/seed_0
+
+python eval.py --checkpoint artifacts/freiburg/seed_0/best.pt \
+  --data novisad --split heldout --open-heldout --out artifacts/eval/seed_0
+
+python eval.py --checkpoint artifacts/freiburg/seed_0/best.pt \
+  --data fairurbtemp --root /path/to/extracted/FAIRUrbTemp --city <city> \
+  --split heldout --open-heldout --out artifacts/eval/seed_0
 ```
 
-The registered hackathon environment is CPython 3.12. Do not mix a Python 3.14 venv with a pyenv/conda `pytest` executable; invoke every tool as `python -m ...` through the same interpreter. Passing software tests is **not** a research result.
-
-## Train
+Repeat with seeds 1 and 2 using separate `artifacts/eval/seed_<n>` directories, then aggregate:
 
 ```bash
-python train.py --config config/train.yaml --seed 0 --out artifacts/freiburg
-python train.py --config config/train.yaml --seed 1 --out artifacts/freiburg
-python train.py --config config/train.yaml --seed 2 --out artifacts/freiburg
+python summarize.py --root artifacts/eval --out artifacts/summary.json
 ```
 
-No Freiburg final-test labels are used in training or early stopping.
+Metrics include MAE, RMSE, bias, p95 absolute error, horizon-wise MAE/RMSE, conformal coverage, surprise, parameter count, and inference latency.
 
-## Evaluate
+## FortyGuard evidence
 
-```bash
-# Primary held-out test
-python eval.py --checkpoint artifacts/freiburg/seed_0/best.pt --data freiburg --out artifacts/eval/seed_0
-
-# OOD-1
-python eval.py --checkpoint artifacts/freiburg/seed_0/best.pt --data novisad --out artifacts/eval/seed_0
-
-# OOD-2 after adding/extracting the official FAIRUrbTemp archive
-python eval.py --checkpoint artifacts/freiburg/seed_0/best.pt --data fairurbtemp --root /kaggle/input/fairurbtemp-extracted --city <city> --out artifacts/eval/seed_0
-```
-
-Repeat evaluation for every seed. **Do not choose the best seed.** Report mean ± standard deviation across all frozen seeds.
-
-## FortyGuard real API proof
-
-Never commit an API key. Keep it only in a local `.env` / shell environment or Kaggle Secret named `FORTYGUARD_API_KEY`.
+The FortyGuard API key is never committed. Configure it locally/server-side:
 
 ```bash
 export FORTYGUARD_API_KEY='...'
-python fortyguard_check.py \
-  --date 2026-08-26 \
-  --time 15:00 \
-  --aoi examples/sanjose_aoi.geojson \
-  --granularity 100
 ```
 
-The client persists the `activity_id` immediately and resumes polling the same activity after interruption, rather than blindly spending credits by reposting the same request. Completed payloads are stored under `artifacts/fortyguard/`; this directory is git-ignored.
-
-For the final hackathon README, add **one sanitized real request and response excerpt generated from this store**. Never paste the API key. Do not fabricate provider fields.
-
-## Results and figures
-
-Research numbers are intentionally absent before the real runs. After all three seeds finish:
+A real heatmap request is:
 
 ```bash
-python plot.py \
-  artifacts/eval/seed_0/freiburg_metrics.json \
-  artifacts/eval/seed_0/novisad_metrics.json \
-  --out artifacts/figures
+python fortyguard_check.py \
+  --date 2026-08-27 --time 12:00 \
+  --aoi examples/sanjose_aoi.geojson --granularity 100
 ```
 
-The required report set is:
+The client is asynchronous and crash-resumable: it persists the exact request intent before POST, saves the provider `activity_id`, resumes polling the same activity after restart, content-addresses completed responses, and never automatically re-posts an ambiguous request.
 
-- train / validation learning curves per seed;
-- Freiburg MAE, RMSE, bias, p95 absolute error;
-- horizon-wise error (to be added from raw prediction export before paper submission);
-- 90% split-conformal coverage;
-- zero-shot Novi Sad and FAIRUrbTemp metrics;
-- model parameter count and inference latency;
-- mechanism-weight diagnostics;
-- surprise distribution under ID vs OOD;
-- failures and abstentions, not only wins.
+## 3D UI
 
-Do not write "SOTA", "human-level", "AGI", "cools Earth", or "beats model X" unless the corresponding experiment directly establishes that statement.
+Run locally:
+
+```bash
+make serve
+```
+
+or with Docker:
+
+```bash
+docker build -t sam-wm .
+docker run --rm -p 8000:8000 -e FORTYGUARD_API_KEY sam-wm
+```
+
+The browser interface separates three truth states:
+
+- **OBSERVED** — real FortyGuard/map evidence;
+- **REAL REPLAY** — only attributable intervention pre/post/control evidence;
+- **PREDICTED FUTURE** — only after a frozen checkpoint, calibration, compatible context, and CANDRA action evidence are promoted.
+
+The UI never replaces an unavailable upstream field with sample temperatures and never labels a modelled value as observed.
 
 ## CANDRA
 
-`src/coolworld/candra.py` contains a temporal block-bootstrap difference-in-differences reference estimator and conservative action gate. It is valid only when a genuine intervention/control design is available and its assumptions are justified. Ordinary observational temperature data do not satisfy that requirement by themselves.
+`src/coolworld/candra.py` provides the conservative action-evidence boundary. Its temporal block-bootstrap difference-in-differences estimator is only valid after the treated/control assumptions have been independently justified. Low support, overlapping uncertainty, or absent intervention evidence produces an abstention.
 
-## Reproducibility rules
+## FortyGuard Hackathon'26
 
-- fixed seeds and chronology;
-- immutable dataset checksums where the host exposes stable files;
-- no target-label leakage into normalizers;
-- validation-only early stopping;
-- split conformal calibration on Freiburg validation only;
-- no OOD fine-tuning or OOD-label recalibration;
-- no API secrets in Git;
-- fail-closed dataset parsers;
-- no invented intervention delta;
-- every final number must be produced from saved artifacts, not manually typed.
+Current official guidance reviewed through 27 Aug 2026 prioritizes:
 
-## UI and deployment
+- Impact & Relevance — 40%
+- Technical Execution — 35%
+- Innovation — 15%
+- Communication — 10%
 
-The existing CoolWorld 3D UI is intentionally held outside this redesign until its visual design is approved. After training, the next branch will connect:
+Submission deadline: **30 Aug 2026, 11:59 PM GST**. Final delivery requires the official form, a public/no-login live demo, a demo video no longer than 3 minutes, and a code repository. See `docs/HACKATHON.md` and `docs/KAGGLE_PROTOCOL.md`.
 
-`FortyGuard observed field -> SAM-WM baseline future -> CANDRA evidence gate -> 3D predicted/replay views`.
+## Claim policy
 
-The live demo must remain usable without login during judging. A green UI state is never treated as scientific evidence by itself.
+Until frozen experiments prove otherwise, this repository does **not** claim:
 
-## Attribution
+- state of the art;
+- human-level/child-level general intelligence;
+- AGI/ASI;
+- a guaranteed urban cooling effect;
+- top-0.01% hackathon placement or a specific judging score.
 
-SAM-WM is an independent project. Its compact predictive + regularization philosophy is inspired by the public LeWorldModel implementation, but it does not copy LeWM's pixel architecture or claim authorship of SIGReg. Dataset and paper sources are listed in `docs/SOURCES.md`.
+What it does claim is testable: sparse physically typed dynamics, explicit missing-modality handling, training-only physical bounds, zero-shot cross-city evaluation, calibrated uncertainty, auditable FortyGuard evidence, and causal abstention when intervention support is insufficient.
+
+## License
+
+MIT. See `LICENSE`.
