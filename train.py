@@ -7,9 +7,10 @@ from pathlib import Path
 
 import torch
 
-from coolworld.benchmarks import load_freiburg, save_manifest
+from coolworld.benchmarks import save_manifest
 from coolworld.config import load_yaml
 from coolworld.experiment import train_model
+from coolworld.freiburg import load_freiburg
 
 
 def configure_reproducibility() -> None:
