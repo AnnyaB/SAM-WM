@@ -10,8 +10,8 @@ def test_released_header_with_five_field_rows_is_reconstructed(tmp_path: Path):
     path = tmp_path / "freiburg.csv"
     path.write_text(
         'datetime_UTC,station_id,"variable,value",data_type\n'
-        '2022-09-01T00:00:00Z,FRABCD,Ta_degC,20.5,observed\n'
-        '2022-09-01T00:00:00Z,FRABCD,RH_percent,55.0,imputed\n',
+        "2022-09-01T00:00:00Z,FRABCD,Ta_degC,20.5,observed\n"
+        "2022-09-01T00:00:00Z,FRABCD,RH_percent,55.0,imputed\n",
         encoding="utf-8",
     )
 
