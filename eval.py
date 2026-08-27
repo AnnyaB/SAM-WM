@@ -8,9 +8,10 @@ from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
 
-from coolworld.benchmarks import load_fairurbtemp, load_freiburg, load_novisad, save_manifest
+from coolworld.benchmarks import load_fairurbtemp, load_novisad, save_manifest
 from coolworld.config import load_yaml
 from coolworld.experiment import calibration_from_split, evaluate_split
+from coolworld.freiburg import load_freiburg
 
 DATASET_SOURCES = {
     "freiburg": "doi:10.5281/zenodo.12732565",
