@@ -141,11 +141,7 @@ def _temperature_only_loss(
         target_temperature - output.temperature_mean
     ).abs() / scale + output.temperature_log_scale
     temp_nll = (laplace_nll * mask).sum() / denom
-    sig = (
-        sigreg(output.latent_pred[target_mask])
-        if target_mask.any()
-        else temp_nll.new_zeros(())
-    )
+    sig = sigreg(output.latent_pred[target_mask]) if target_mask.any() else temp_nll.new_zeros(())
     loss = temp_nll + float(lambda_sig) * sig
     zero = temp_nll.new_zeros(())
     return loss, {
@@ -241,11 +237,7 @@ def evaluate_sanity_baselines(
             if valid.any():
                 errors[name].append((prediction - target)[valid])
 
-    return {
-        name: _metric_dict(np.concatenate(chunks))
-        for name, chunks in errors.items()
-        if chunks
-    }
+    return {name: _metric_dict(np.concatenate(chunks)) for name, chunks in errors.items() if chunks}
 
 
 def _sha256_file(path: Path) -> str:
