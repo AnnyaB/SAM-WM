@@ -65,21 +65,37 @@ def _complete_hourly_index(start: str, end: str) -> pd.DatetimeIndex:
     return pd.date_range(start, end, freq="h", inclusive="both", tz="UTC").tz_localize(None)
 
 
-def _canonicalize_freiburg_table(raw: pd.DataFrame) -> pd.DataFrame:
-    """Normalize the official Freiburg CSV into the published long-form contract.
+def _split_freiburg_variable_value(series: pd.Series) -> tuple[pd.Series, pd.Series]:
+    """Split the released quoted ``variable,value`` field without guessing.
 
-    Zenodo documents the semantic fields ``datetime_UTC``, ``station_id``,
-    ``variable``, ``value`` and ``data_type``. CSV readers should not make the
-    benchmark depend on superficial header case/BOM/whitespace, and some exported
-    copies expose the two variables as wide ``Ta_degC``/``RH_percent`` columns.
-    Both representations carry the same official semantics and are normalized here.
-    Unknown layouts fail closed with the observed columns instead of being guessed.
+    The Zenodo record defines ``variable`` and ``value`` as separate semantic fields.
+    Some CSV parse paths expose the released quoted pair as one column named
+    ``variable,value``. Each row must therefore contain exactly one supported variable
+    token followed by one numeric value. Anything else fails closed.
     """
+    text = series.astype(str).str.strip()
+    split = text.str.rsplit(",", n=1, expand=True)
+    if split.shape[1] != 2:
+        raise ValueError("Freiburg combined variable,value field is not two-part")
+
+    variable = split.iloc[:, 0].str.strip()
+    value_text = split.iloc[:, 1].str.strip()
+    value = pd.to_numeric(value_text, errors="coerce")
+    malformed = value.isna() & value_text.ne("") & value_text.str.casefold().ne("nan")
+    if malformed.any():
+        examples = text[malformed].head(3).tolist()
+        raise ValueError(f"Freiburg combined variable,value rows are malformed: {examples}")
+    return variable, value
+
+
+def _canonicalize_freiburg_table(raw: pd.DataFrame) -> pd.DataFrame:
+    """Normalize the official Freiburg release to one strict long-form contract."""
     canonical_names = {
         "datetime_utc": "datetime_UTC",
         "station_id": "station_id",
         "variable": "variable",
         "value": "value",
+        "variable,value": "variable,value",
         "data_type": "data_type",
         "ta_degc": "Ta_degC",
         "rh_percent": "RH_percent",
@@ -105,6 +121,12 @@ def _canonicalize_freiburg_table(raw: pd.DataFrame) -> pd.DataFrame:
 
     if {"variable", "value"}.issubset(df.columns):
         long = df[["datetime_UTC", "station_id", "variable", "value", "data_type"]].copy()
+    elif "variable,value" in df.columns:
+        variable, value = _split_freiburg_variable_value(df["variable,value"])
+        long = df[["datetime_UTC", "station_id", "data_type"]].copy()
+        long["variable"] = variable
+        long["value"] = value
+        long = long[["datetime_UTC", "station_id", "variable", "value", "data_type"]]
     elif {"Ta_degC", "RH_percent"}.issubset(df.columns):
         pieces: list[pd.DataFrame] = []
         for variable in ("Ta_degC", "RH_percent"):
@@ -116,8 +138,9 @@ def _canonicalize_freiburg_table(raw: pd.DataFrame) -> pd.DataFrame:
         long = long[["datetime_UTC", "station_id", "variable", "value", "data_type"]]
     else:
         raise ValueError(
-            "Freiburg schema mismatch; expected long variable/value fields or official "
-            f"wide Ta_degC/RH_percent fields; observed columns={list(map(str, raw.columns))}"
+            "Freiburg schema mismatch; expected variable/value, released variable,value, "
+            "or wide Ta_degC/RH_percent fields; "
+            f"observed columns={list(map(str, raw.columns))}"
         )
 
     variable_map = {"ta_degc": "Ta_degC", "rh_percent": "RH_percent"}
@@ -335,12 +358,7 @@ def load_novisad(
 
 
 def _parse_sef_file(path: Path) -> tuple[str, float, float, pd.Series]:
-    """Parse one FAIRUrbTemp hourly SEF file and remove QC-flagged observations.
-
-    FAIRUrbTemp retains suspicious values and records QC flags in the observation-level
-    Meta field. Values carrying a ``qc = ...`` entry are treated as unavailable rather
-    than silently scored as ground truth.
-    """
+    """Parse one FAIRUrbTemp hourly SEF file and remove QC-flagged observations."""
     lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
     if not lines or not lines[0].startswith("SEF"):
         raise ValueError(f"not SEF: {path}")
