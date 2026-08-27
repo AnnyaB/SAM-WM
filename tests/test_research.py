@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import research
 import torch
+
 from coolworld.samwm import SAMWorldModel, SIGReg
 
 
