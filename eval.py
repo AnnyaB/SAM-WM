@@ -5,7 +5,7 @@ import hashlib
 import json
 import os
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from coolworld.benchmarks import load_fairurbtemp, load_freiburg, load_novisad, save_manifest
@@ -93,7 +93,7 @@ def main() -> None:
             receipt,
             {
                 "status": "OPENED_BEFORE_LABEL_ACCESS",
-                "opened_at_utc": datetime.now(timezone.utc).isoformat(),
+                "opened_at_utc": datetime.now(UTC).isoformat(),
                 "dataset": args.data,
                 "dataset_source": ds.source,
                 "protocol": protocol,
