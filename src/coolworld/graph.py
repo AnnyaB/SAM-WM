@@ -4,18 +4,24 @@ import math
 
 import numpy as np
 import torch
+from scipy.spatial import cKDTree
 
 
 def haversine_xy(lat: np.ndarray, lon: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """City-centred equirectangular coordinates in metres.
 
-    The approximation is accurate for the compact urban sensor/AOI extents used by
-    SAM-WM and, unlike raw latitude/longitude, does not encode city identity.
+    The approximation is accurate for compact urban sensor/AOI extents and,
+    unlike raw latitude/longitude, does not encode city identity.
     """
     lat = np.asarray(lat, dtype=float)
     lon = np.asarray(lon, dtype=float)
     if lat.shape != lon.shape or lat.ndim != 1 or len(lat) == 0:
         raise ValueError("lat/lon must be non-empty aligned 1-D arrays")
+    if not np.isfinite(lat).all() or not np.isfinite(lon).all():
+        raise ValueError("lat/lon must be finite")
+    if np.any(np.abs(lat) > 90) or np.any(np.abs(lon) > 180):
+        raise ValueError("lat/lon outside geographic bounds")
+
     lat0 = np.deg2rad(float(np.mean(lat)))
     x = np.deg2rad(lon - np.mean(lon)) * 6_371_000.0 * math.cos(lat0)
     y = np.deg2rad(lat - np.mean(lat)) * 6_371_000.0
@@ -27,13 +33,7 @@ def local_static_features(
     lon: np.ndarray,
     elevation: np.ndarray,
 ) -> np.ndarray:
-    """Translation-invariant geometry features for zero-shot cross-city transfer.
-
-    x/y are normalised by the city's RMS radius (geometry only, no target labels).
-    Elevation is expressed relative to the city's median and scaled by a robust
-    geometry-only scale. The representation therefore keeps local shape/topography
-    without turning absolute latitude/longitude into a city-ID shortcut.
-    """
+    """Translation-invariant geometry features for zero-shot cross-city transfer."""
     x, y = haversine_xy(lat, lon)
     radius = np.sqrt(x**2 + y**2)
     xy_scale = max(float(np.sqrt(np.mean(radius**2))), 100.0)
@@ -56,31 +56,49 @@ def local_static_features(
 
 
 def knn_graph(lat: np.ndarray, lon: np.ndarray, k: int = 4) -> tuple[torch.Tensor, torch.Tensor]:
-    """Undirected sparse kNN graph with direction and physical edge length.
+    """Build an undirected sparse physical kNN graph without dense N×N distances.
 
-    edge_attr = [unit_x, unit_y, log1p(distance_km)]. The first two channels are
-    retained for wind projection; distance gives exchange/message operators a
-    physically meaningful locality cue without dense O(N^2) attention.
+    `cKDTree` gives scalable neighbour discovery while the learned graph operators
+    remain O(E). Edge attributes are `[unit_x, unit_y, log1p(distance_km)]`.
     """
+    lat = np.asarray(lat, dtype=float)
+    lon = np.asarray(lon, dtype=float)
     if len(lat) < 2:
         raise ValueError("at least two stations required")
     if k < 1:
         raise ValueError("k must be >=1")
-    x, y = haversine_xy(np.asarray(lat, float), np.asarray(lon, float))
+
+    x, y = haversine_xy(lat, lon)
     pts = np.column_stack([x, y])
-    d = np.linalg.norm(pts[:, None] - pts[None, :], axis=-1)
+    kk = min(int(k), len(lat) - 1)
+
+    tree = cKDTree(pts, compact_nodes=True, balanced_tree=True)
+    query_k = min(len(lat), 2 * kk + 1)
+    _, neighbours = tree.query(pts, k=query_k, workers=1)
+    if neighbours.ndim == 1:
+        neighbours = neighbours[:, None]
+
     pairs: set[tuple[int, int]] = set()
-    kk = min(k, len(lat) - 1)
-    for i in range(len(lat)):
-        for j in np.argsort(d[i])[1 : kk + 1]:
-            a, b = sorted((i, int(j)))
+    for i, row in enumerate(neighbours):
+        accepted = 0
+        for raw_j in np.atleast_1d(row):
+            j = int(raw_j)
+            if j == i:
+                continue
+            a, b = sorted((i, j))
             pairs.add((a, b))
+            accepted += 1
+            if accepted == kk:
+                break
+        if accepted < kk:
+            raise RuntimeError("kNN query returned insufficient non-self neighbours")
+
     pairs_sorted = sorted(pairs)
     edge_index = torch.tensor(pairs_sorted, dtype=torch.long).t().contiguous()
-    attrs = []
+    attrs: list[list[float]] = []
     for i, j in pairs_sorted:
-        vec = pts[j] - pts[i]
-        dist_m = max(float(np.linalg.norm(vec)), 1.0)
-        unit = vec / dist_m
-        attrs.append([float(unit[0]), float(unit[1]), math.log1p(dist_m / 1000.0)])
+        dx = float(pts[j, 0] - pts[i, 0])
+        dy = float(pts[j, 1] - pts[i, 1])
+        dist_m = max(math.hypot(dx, dy), 1.0)
+        attrs.append([dx / dist_m, dy / dist_m, math.log1p(dist_m / 1000.0)])
     return edge_index, torch.tensor(attrs, dtype=torch.float32)
