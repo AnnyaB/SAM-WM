@@ -135,8 +135,7 @@ def _canonicalize_freiburg_table(raw: pd.DataFrame) -> pd.DataFrame:
     duplicates = long.duplicated(["datetime_UTC", "station_id", "variable"], keep=False)
     if duplicates.any():
         raise ValueError(
-            "Freiburg contains duplicate station/time/variable rows; "
-            f"count={int(duplicates.sum())}"
+            f"Freiburg contains duplicate station/time/variable rows; count={int(duplicates.sum())}"
         )
     return long
 
