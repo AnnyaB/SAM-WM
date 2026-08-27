@@ -22,9 +22,7 @@ def test_kaggle_notebook_has_freeze_before_heldout():
     path = Path("notebooks/SAM_WM_KAGGLE.ipynb")
     notebook = json.loads(path.read_text(encoding="utf-8"))
     source = "\n".join(
-        "".join(cell["source"])
-        for cell in notebook["cells"]
-        if cell["cell_type"] == "code"
+        "".join(cell["source"]) for cell in notebook["cells"] if cell["cell_type"] == "code"
     )
     freeze = source.index("FREEZE_MANIFEST.json")
     final_test = source.index('"--open-heldout"')

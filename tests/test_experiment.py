@@ -103,9 +103,6 @@ def test_windows_never_cross_non_hourly_gap():
     )
     assert 180 not in starts
     assert all(
-        np.all(
-            np.diff(gapped.timestamps[start - 48 : start + 6])
-            == np.timedelta64(1, "h")
-        )
+        np.all(np.diff(gapped.timestamps[start - 48 : start + 6]) == np.timedelta64(1, "h"))
         for start in starts
     )
