@@ -181,9 +181,9 @@ class WindowDataset(Dataset[dict[str, Tensor]]):
         start = int(self.starts[index])
         context_slice = slice(start - self.context, start)
         future_slice = slice(start, start + self.horizon)
-        target = (
-            (self.ds.temperature[future_slice] - self.temp_mean) / self.temp_std
-        ).astype(np.float32)
+        target = ((self.ds.temperature[future_slice] - self.temp_mean) / self.temp_std).astype(
+            np.float32
+        )
         return {
             "context_dynamic": torch.from_numpy(self.dynamic[context_slice]),
             "static": torch.from_numpy(self.static),
@@ -494,9 +494,7 @@ def _evaluate_loader(
     else:
         latency_ms = float("nan")
     mean_surprise = (
-        float(np.concatenate(surprise_values).mean())
-        if surprise_values
-        else float("nan")
+        float(np.concatenate(surprise_values).mean()) if surprise_values else float("nan")
     )
 
     return Metrics(
