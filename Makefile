@@ -31,7 +31,8 @@ verify-frontend:
 	@if command -v node >/dev/null 2>&1; then \
 		node --check static/app.js && \
 		node --check static/bootstrap.js && \
-		node --check static/product.js; \
+		node --check static/product.js && \
+		node --check static/interpretability.js; \
 	else \
 		echo "node not installed; frontend syntax check skipped locally"; \
 	fi
