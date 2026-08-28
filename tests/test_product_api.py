@@ -14,13 +14,15 @@ def square(tile_id: str, temperature: float, x0: float, y0: float) -> dict[str, 
         },
         "geometry": {
             "type": "Polygon",
-            "coordinates": [[
-                [x0, y0],
-                [x0 + 0.001, y0],
-                [x0 + 0.001, y0 + 0.001],
-                [x0, y0 + 0.001],
-                [x0, y0],
-            ]],
+            "coordinates": [
+                [
+                    [x0, y0],
+                    [x0 + 0.001, y0],
+                    [x0 + 0.001, y0 + 0.001],
+                    [x0, y0 + 0.001],
+                    [x0, y0],
+                ]
+            ],
         },
     }
 

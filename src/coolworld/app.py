@@ -194,12 +194,10 @@ def readiness() -> dict[str, Any]:
         "world_modes": {
             "observed": "real recorded/live FortyGuard evidence",
             "research_forecast": (
-                "frozen SAM-WM output on verified real context; "
-                "not operationally certified"
+                "frozen SAM-WM output on verified real context; not operationally certified"
             ),
             "operational_forecast": (
-                "requires the fixed provider-replay gate in addition "
-                "to the frozen research bundle"
+                "requires the fixed provider-replay gate in addition to the frozen research bundle"
             ),
             "counterfactual": (
                 "requires independent treated/control action evidence "

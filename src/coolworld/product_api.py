@@ -114,9 +114,7 @@ def _provider_replay_snapshot(checkpoint_sha: str | None) -> dict[str, Any]:
         "conformal_coverage": payload.get("conformal_coverage"),
         "minimum_required_coverage": payload.get("minimum_required_coverage"),
         "mae_to_radius_ratio": payload.get("mae_to_radius_ratio"),
-        "maximum_allowed_mae_to_radius_ratio": payload.get(
-            "maximum_allowed_mae_to_radius_ratio"
-        ),
+        "maximum_allowed_mae_to_radius_ratio": payload.get("maximum_allowed_mae_to_radius_ratio"),
         "model_mae_c": payload.get("model_mae_c"),
         "model_rmse_c": payload.get("model_rmse_c"),
         "window_count": payload.get("window_count"),
@@ -342,14 +340,10 @@ def hotspots(fraction: float = 0.20) -> dict[str, Any]:
 
     latest = canonical_map_data(frames[-1]["map_data"])
     latest_by_id = {
-        str(feature["properties"]["tile_id"]): feature
-        for feature in latest["features"]
+        str(feature["properties"]["tile_id"]): feature for feature in latest["features"]
     }
 
-    future_by_tile = [
-        [row[index] for row in rows_by_horizon]
-        for index in range(len(tile_ids))
-    ]
+    future_by_tile = [[row[index] for row in rows_by_horizon] for index in range(len(tile_ids))]
     future_mean = [sum(series) / len(series) for series in future_by_tile]
 
     order = sorted(

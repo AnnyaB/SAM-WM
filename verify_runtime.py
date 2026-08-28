@@ -17,9 +17,7 @@ from coolworld.provider import recorded_heatmap_frames  # noqa: E402
 
 EXPECTED_MODEL = "SAM-WM"
 EXPECTED_SEED = 42
-EXPECTED_CHECKPOINT_SHA256 = (
-    "2be783f8a3b7f755a72a98949397c67dfec3a66a6400d8b98e1e732e0d8b708f"
-)
+EXPECTED_CHECKPOINT_SHA256 = "2be783f8a3b7f755a72a98949397c67dfec3a66a6400d8b98e1e732e0d8b708f"
 MIN_COMPATIBLE_FRAMES = 65
 
 CHECKPOINT = ROOT / "artifacts/deployment/best.pt"
@@ -94,10 +92,7 @@ def verify_timeline() -> tuple[list[dict[str, Any]], str]:
     signature = next(iter(signatures))
     require(signature and signature != "None", "provider grid signature missing")
 
-    tile_counts = {
-        len((frame.get("map_data") or {}).get("features") or [])
-        for frame in selected
-    }
+    tile_counts = {len((frame.get("map_data") or {}).get("features") or []) for frame in selected}
     require(len(tile_counts) == 1, "provider tile count changed")
     require(next(iter(tile_counts)) > 1, "provider grid has too few tiles")
 
