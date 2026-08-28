@@ -43,6 +43,7 @@ jobs:
       - run: node --check static/bootstrap.js
       - run: node --check static/product.js
       - run: node --check static/interpretability.js
+      - run: node --check static/city-model.js
 
   runtime-contract:
     name: immutable-runtime-contract
@@ -97,8 +98,11 @@ jobs:
           curl -fsS http://127.0.0.1:7860/api/evidence-summary > /tmp/evidence.json
           curl -fsS 'http://127.0.0.1:7860/api/evidence/timeline?limit=1' > /tmp/timeline.json
           curl -fsS http://127.0.0.1:7860/static/interpretability.js > /tmp/interpretability.js
+          curl -fsS http://127.0.0.1:7860/static/city-model.js > /tmp/city-model.js
           grep -F 'START HERE · GUIDED DEMO' /tmp/interpretability.js
           grep -F 'How to read this coloured mask' /tmp/interpretability.js
+          grep -F 'HOW THIS CITY FORECAST IS BUILT' /tmp/city-model.js
+          grep -F 'PLAYBACK · Press ▶ or drag the slider' /tmp/city-model.js
           python - <<'PY'
           import json
           from pathlib import Path
