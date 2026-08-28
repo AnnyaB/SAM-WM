@@ -117,8 +117,12 @@ SAM-WM/
 │   ├── index.html           # judge/user-first UI
 │   ├── app.js               # real 3D thermal renderer + SAM-WM forecast
 │   ├── product.js           # guided flow, hotspot plan, evidence panels
+│   ├── interpretability.js  # guided first-time-user explanation layer
+│   ├── city-model.js        # top-bar SAM-WM city-model inspector
 │   ├── styles.css
-│   └── product.css
+│   ├── product.css
+│   ├── interpretability.css
+│   └── city-model.css
 │
 ├── artifacts/               # only immutable demo/runtime evidence is tracked
 ├── notebooks/
@@ -206,6 +210,28 @@ This distinction is exposed programmatically by `/api/product-status` and visual
 ---
 
 ## CoolWorld 3D interface
+
+### Start-to-finish walkthrough
+
+The large left-hand viewport is the primary product surface. The guided demo keeps the interaction sequence explicit:
+
+1. **Measured city** — start with the recorded FortyGuard thermal field on the real 3D San José basemap.
+2. **Playback** — press `▶` or drag the timeline to inspect the 65 stored hourly provider fields. The control is a time navigator, not a video recorder and not a source of synthetic measurements.
+3. **SAM-WM forecast** — run the forecast and use the same timeline to move through the six predicted city states from `+1 h` to `+6 h`.
+4. **City Model** — click the pulsing **CITY MODEL · SAM-WM** control in the top bar. It opens the model inspector without covering or shrinking the main 3D city during normal use. The inspector shows `48 h history → 36 provider tiles → local sparse graph → routed thermal mechanisms → +1…+6 h rollout` and explains each mechanism in plain language.
+5. **Persistent Heat Priority** — inspect the ranked future-hotspot map and cards. Priority colour is relative within the selected forecast-hotspot set; the true °C remains visible in the metrics/hover state.
+6. **Field plan** — inspect a candidate location, choose a physically feasible intervention, define treated and comparison areas, implement in the real world, then measure the effect.
+7. **Evidence** — benchmark, replay and provenance panels explain how the frozen model was evaluated. Use **Restart** in the guide to return to the measured starting state.
+
+### How to read the lower dashboard
+
+| Panel | What it shows | How to use it |
+|---|---|---|
+| **City Field Distribution** | Histogram of the temperatures across the displayed 36-tile field. The horizontal axis is °C; bar height is the number of tiles in each temperature bin. | Use it to see whether the field is tightly clustered or contains a warmer/cooler tail. It is a distribution of the current selected hour, not a time-series plot. |
+| **Selected Hour** | Mean, P95, maximum, minimum and tile count for the city field currently displayed on the 3D map. | Move the timeline and watch these values change with the selected measured or forecast hour. |
+| **Forecast Range + Validation** | Forecast horizon, the calibrated prediction-band radius, and the recorded field-replay coverage. | The prediction band describes forecast uncertainty. Replay coverage describes how often measured replay values fell inside that band; it is a model-validation quantity, not a FortyGuard API status. |
+| **6-Hour Priority-Zone Outlook** | Mean temperature trajectory of the currently prioritized forecast locations from `+1 h` to `+6 h`. | Use it to see whether the prioritized warm locations are expected to cool, stay elevated, or warm again. It is not the mean of the entire city. |
+| **Persistent Heat Priority** | Tiles ranked by future temperature and by how frequently they remain in the selected warmest fraction across all six forecast hours. | Use it to shortlist sites for engineering inspection. Red/orange/yellow expresses relative priority; read the card/hover °C for the actual temperature. |
 
 ### Observe
 

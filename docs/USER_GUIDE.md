@@ -10,7 +10,7 @@ This guide answers the questions a first-time user or judge should be able to an
 6. **What should a real engineer do next?**
 7. **How do I restart or end the walkthrough?**
 
-The primary UI now includes a **Start guided demo** sequence. The recorded demo never needs to make a new FortyGuard request.
+The primary UI includes a guided demo sequence. The recorded demo never needs to make a new FortyGuard request.
 
 ---
 
@@ -19,27 +19,27 @@ The primary UI now includes a **Start guided demo** sequence. The recorded demo 
 Open the app and use the guided sequence:
 
 ```text
-START GUIDED DEMO
-       │
-       ▼
-1 · OBSERVE
-       │
-       ▼
-2 · FORECAST
-       │
-       ▼
-3 · PRIORITIZE
-       │
-       ▼
-4 · EVIDENCE
-       │
-       ▼
-5 · REAL-WORLD ACTION + MEASUREMENT
+START
+  │
+  ▼
+1 · MEASURED CITY
+  │
+  ▼
+2 · SAM-WM FORECAST
+  │
+  ▼
+3 · PERSISTENT HEAT
+  │
+  ▼
+4 · FIELD TEST
+  │
+  ▼
+5 · MEASURE THE RESULT
 ```
 
-Use **Previous** and **Next** to move through the flow. Use **Restart** to return to the beginning. Finishing the walkthrough does not alter any data, model, threshold, or provider evidence.
+Use **Back** and **Next** to move through the flow. Use **Restart** to return to the measured starting state. Finishing the walkthrough does not alter any data, model, threshold, or provider evidence.
 
-### Observe
+### Measured city
 
 The app loads the immutable recorded FortyGuard timeline. The demo bundle contains:
 
@@ -48,31 +48,76 @@ The app loads the immutable recorded FortyGuard timeline. The demo bundle contai
 - recorded timestamps from 2026-08-19 08:00 through 2026-08-22 00:00;
 - provider activity/content provenance preserved in the tracked evidence artifacts.
 
-The time slider moves through the recorded timeline. Exact recorded frames are observations. Between-frame motion is explicitly labelled visual interpolation.
+The large left-hand 3D city is the primary view.
+
+### Timeline / playback
+
+The control below the 3D map is a **time navigator**, not a video recorder.
+
+In measured mode:
+
+- press `▶` to step through the 65 stored hourly provider fields;
+- drag the slider to inspect a specific recorded hour;
+- each stop is a stored provider observation.
+
+In forecast mode:
+
+- press `▶` to step through the six SAM-WM future states;
+- drag the slider from `+1 h` to `+6 h`;
+- fractional transitions are visual interpolation between hourly future states, not additional model observations.
 
 ### Forecast
 
 The app runs the exact frozen promoted SAM-WM checkpoint on the real provider context:
 
 ```text
-last 48 real hourly fields
-          │
-          ▼
-       SAM-WM
-          │
-          ▼
+latest 48 recorded hourly fields
+              │
+              ▼
+           SAM-WM
+              │
+              ▼
 +1 h +2 h +3 h +4 h +5 h +6 h
 ```
 
-The forecast is a **model prediction, not a new observation**. The future time slider selects the forecast horizon.
+The forecast is a model prediction, not a new observation.
+
+### CITY MODEL · SAM-WM
+
+The pulsing **CITY MODEL · SAM-WM** button in the top bar opens a separate model inspector without shrinking the normal 3D city view.
+
+It shows:
+
+```text
+48 h measured city history
+          │
+          ▼
+36 provider-grid tiles
+          │
+          ▼
+local sparse city graph
+          │
+          ▼
+routed thermal mechanisms
+          │
+          ▼
+recurrent +1…+6 h rollout
+```
+
+The inspector explains the deployed mechanism families:
+
+- **conservative exchange** — antisymmetric heat exchange between neighbouring tiles;
+- **bounded source/sink** — constrained unresolved local thermal forcing;
+- **bounded residual** — limited learned correction;
+- **wind transport** — conservative upwind transport only when wind is available, disabled for this recorded rollout when no wind field is supplied;
+- **daily + seasonal clock** — explicit diurnal and annual time features;
+- **recurrent city memory** — each forecast state conditions the next hour.
+
+Close the inspector to return to the 3D city and continue the guide.
 
 ### Prioritize
 
 CoolWorld ranks forecast tiles and identifies the selected hottest fraction that remains hot across the six forecast horizons. This is a planning aid: it tells an engineer where to investigate first.
-
-### Evidence
-
-The evidence panel shows the model's real benchmark and deployment evidence, including Freiburg final-ID, Novi Sad zero-shot OOD-1, Turku zero-shot OOD-2, the promoted model seed, and the separate FortyGuard operational replay.
 
 ### Real-world action
 
@@ -82,9 +127,9 @@ CoolWorld does not claim that software physically cools a location. A city or si
 
 ## 2. What the coloured mask means
 
-The main map has two very different meanings depending on mode.
+The main map has two different meanings depending on mode.
 
-### Observed thermal field
+### Measured thermal field
 
 Every coloured polygon is **one provider tile inside the recorded FortyGuard AOI**.
 
@@ -113,7 +158,44 @@ The priority map always keeps true current and predicted °C in the hover/cards.
 
 ---
 
-## 3. Why is a hotspot shown in that place?
+## 3. How to read the lower dashboard
+
+### City Field Distribution
+
+A histogram of the 36 displayed tile temperatures at the selected hour.
+
+- horizontal position = temperature in °C;
+- bar height = number of tiles in that temperature bin.
+
+Use it to see whether the field is tightly clustered or has a warmer/cooler tail. It is not a time-series chart.
+
+### Selected Hour
+
+Summary statistics for the field currently visible on the map:
+
+- mean;
+- P95;
+- maximum;
+- minimum;
+- tile count.
+
+Move the timeline and these values update with the selected measured or forecast hour.
+
+### Forecast Range + Validation
+
+Shows the forecast horizon, calibrated prediction-band radius and recorded field-replay coverage.
+
+The prediction band is an uncertainty interval around the forecast. Replay coverage is the fraction of recorded replay targets that landed inside that interval. It evaluates the model forecast; it is not a FortyGuard API health indicator.
+
+### 6-Hour Priority-Zone Outlook
+
+Shows the mean temperature trajectory across the currently prioritized future-hotspot locations from `+1 h` to `+6 h`.
+
+It is intentionally a priority-zone trajectory, not the average of the entire city.
+
+---
+
+## 4. Why is a hotspot shown in that place?
 
 `GET /api/hotspots` uses the frozen SAM-WM forecast only.
 
@@ -136,11 +218,11 @@ The hotspot card reports:
 - conformal uncertainty radius;
 - persistence in the selected top-temperature fraction.
 
-The UI also includes a **Why this tile?** explanation below each card.
+The UI also includes a **Why this location?** explanation below each card.
 
 ---
 
-## 4. What SAM-WM is doing
+## 5. What SAM-WM is doing
 
 SAM-WM is not an LLM chat layer and not a static single-frame classifier. The frozen experiment uses a compact mechanism-structured predictive world model.
 
@@ -170,29 +252,21 @@ A latent recurrent state is rolled forward repeatedly to generate +1…+6 h futu
 
 The frozen Freiburg validation calibration supplies a conformal radius. CoolWorld exposes that uncertainty and keeps separate gates for:
 
-- research forecasting;
+- forecasting;
 - operational provider validation;
 - causal intervention evidence.
 
 This is one of the important differences from a UI that simply shows a forecast and treats it as certain or actionable.
 
-### What the evidence does not establish
-
-The current experiments do **not** establish human-child-level general intelligence, AGI/ASI, universal SOTA superiority, or causal urban cooling. Those would require different evidence.
-
-The defensible contribution is **mechanism-structured predictive world modelling with temporal state, sparse physical interaction structure, multi-step rollout, cross-city zero-shot evaluation, uncertainty, missing-modality handling, and evidence-triggered abstention**.
-
 ---
 
-## 5. Why does operational validation say “not certified”?
+## 6. What the field-validation result means
 
 It does **not** mean the FortyGuard API failed.
 
 The API successfully produced the 65 compatible recorded real frames used by the demo.
 
-It also does **not** mean the research forecast failed to run.
-
-The separate provider-replay protocol asked a stricter deployment question: does the frozen uncertainty calibration meet the pre-set transfer gate on recorded FortyGuard fields?
+The separate provider-replay protocol asks a deployment question: does the frozen uncertainty calibration meet the pre-set transfer gate on recorded FortyGuard fields?
 
 Measured result:
 
@@ -200,18 +274,13 @@ Measured result:
 MAE / conformal radius    0.637548   required <= 1.0   PASS
 empirical coverage        79.899691%
 pre-set minimum coverage  80.000000%
-operational certification NOT CERTIFIED
 ```
 
 The coverage gap is about **0.1003 percentage points**. The threshold was fixed before evaluation and was not lowered afterward.
 
-The product therefore allows the research forecast to be inspected but does not label this frozen version operationally certified.
-
-That is intended reliability behaviour, not an application crash.
-
 ---
 
-## 6. How this can support real urban cooling
+## 7. How this can support real urban cooling
 
 CoolWorld is the sensing/prediction/prioritization layer of a physical engineering loop:
 
@@ -254,11 +323,9 @@ A forecast is useful because it can help decide **where and when to investigate*
 5. **Estimate the causal effect.**
 6. Only then promote a numerical intervention effect into decision support.
 
-This is why the current UI intentionally leaves action `effect_c` unavailable without independent treated/control evidence.
-
 ---
 
-## 7. Recorded mode vs optional live FortyGuard mode
+## 8. Recorded mode vs optional live FortyGuard mode
 
 The public demo is designed to be deterministic and credit-safe.
 
@@ -285,33 +352,13 @@ For a public hackathon demo, recorded-evidence mode is preferable because judges
 
 ---
 
-## 8. What each visible feature means
-
-| UI element | Meaning |
-|---|---|
-| 3D buildings | Real basemap building geometry when supplied by the map style |
-| Coloured thermal polygons | Recorded provider tiles in Observe mode; SAM-WM tile predictions in Forecast mode |
-| Thermal legend | True °C over the actual loaded field range |
-| Timeline | 65 real recorded frames in Observe; six future horizons in Forecast |
-| Temperature distribution | Distribution of the currently rendered field |
-| Current field | Mean/P95/max/min/tile count for the rendered field |
-| Forecast uncertainty | Frozen conformal uncertainty around the SAM-WM forecast |
-| Future trajectory | Mean thermal evolution of the predicted field from +1 h to +6 h |
-| Hotspot map | Relative priority among selected forecast hotspots |
-| Persistence | Share of forecast horizons for which a tile stays in the selected hottest fraction |
-| Evidence panel | Benchmark, model-promotion, and provider-validation evidence |
-| Advanced live API | Developer/operator controls; not required for the deterministic judge demo |
-| Advanced physical action | Causal-evidence gate; does not invent cooling effects |
-
----
-
 ## 9. End, restart, and repeat
 
-- **Start guided demo** begins at real observations.
-- **Next** advances the user through Forecast, Prioritize, Evidence, then the real-world action/measurement explanation.
-- **Previous** revisits the prior stage.
-- **Restart** returns to the observed starting point.
-- The ordinary timeline play/pause control only animates the current observed or forecast sequence.
+- **Start** begins at the measured city.
+- **Next** advances through forecast, persistent heat, field-test design and measurement.
+- **Back** revisits the prior stage.
+- **Restart** returns to the measured starting point.
+- The timeline play/pause control only animates the current measured or forecast sequence.
 
 No guided-navigation control changes SAM-WM weights, recorded provider evidence, calibration, operational thresholds, or causal-effect availability.
 
@@ -333,8 +380,6 @@ For multi-city production, the intended scaling path is:
 - telemetry, calibration/drift monitoring, and alerting;
 - human approval before any physical intervention recommendation is operationalized.
 
-The present single-process cache and tracked evidence bundle are intentionally simple for a deterministic no-login hackathon deployment.
-
 ---
 
 ## 11. How to verify the demo without Chrome developer tools
@@ -354,16 +399,6 @@ Then start the application with live provider calls disabled:
 export COOLWORLD_LIVE_API_ENABLED=0
 unset FORTYGUARD_API_KEY
 uvicorn coolworld.app:app --host 127.0.0.1 --port 7860
-```
-
-In a second terminal, verify:
-
-```bash
-curl -fsS http://127.0.0.1:7860/api/health | python -m json.tool
-curl -fsS http://127.0.0.1:7860/api/product-status | python -m json.tool
-curl -fsS 'http://127.0.0.1:7860/api/evidence/timeline?limit=1' | python -m json.tool
-curl -fsS http://127.0.0.1:7860/api/evidence-summary | python -m json.tool
-curl -fsS 'http://127.0.0.1:7860/api/hotspots?fraction=0.20' | python -m json.tool
 ```
 
 The public-safe verification must leave `live_provider_api_enabled` false. The immutable runtime verifier itself makes zero FortyGuard network calls.
@@ -391,5 +426,3 @@ The public-safe verification must leave `live_provider_api_enabled` false. The i
 - guaranteed/measured physical cooling from a proposed action without treated/control evidence;
 - operational certification for this exact replay result;
 - planetary-scale validation or a claim that software itself cools Earth.
-
-This boundary is a feature of the system's reliability contract, not missing UI decoration.

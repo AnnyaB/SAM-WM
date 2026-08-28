@@ -1,0 +1,334 @@
+/* SAM-WM city-model inspector.
+ * This layer changes presentation only. It does not modify model weights,
+ * provider evidence, forecast values, thresholds, or causal gates.
+ */
+
+/* The earlier inline mechanism strip consumed a full grid row and reduced the
+ * 3D city viewport. The model explanation now lives in the top-bar inspector. */
+.cw-model-flow {
+  display: none !important;
+}
+
+.cw-city-model-button {
+  position: relative;
+  width: 188px;
+  min-width: 188px;
+  height: 100%;
+  margin: 0;
+  padding: 12px 14px 10px 19px;
+  border: 0;
+  border-left: 1px solid var(--line-soft);
+  border-right: 1px solid var(--line-soft);
+  border-radius: 0;
+  background:
+    radial-gradient(circle at 18% 50%, rgba(255, 104, 61, 0.17), transparent 36%),
+    linear-gradient(180deg, #111b23 0%, #0b151d 100%);
+  color: #eff6f9;
+  text-align: left;
+  overflow: hidden;
+}
+
+.cw-city-model-button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-bottom: 2px solid rgba(255, 103, 60, 0.58);
+  opacity: 0.9;
+}
+
+.cw-city-model-button:hover,
+.cw-city-model-button:focus-visible {
+  background:
+    radial-gradient(circle at 18% 50%, rgba(255, 116, 61, 0.25), transparent 39%),
+    linear-gradient(180deg, #16232c 0%, #0d1a22 100%);
+  outline: none;
+}
+
+.cw-city-model-copy {
+  display: block;
+  padding-left: 10px;
+}
+
+.cw-city-model-copy .micro-label {
+  color: #f0a67f;
+}
+
+.cw-city-model-copy strong {
+  display: block;
+  color: #eef4f7;
+  font: 9px var(--mono);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.cw-city-model-pulse {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: #ff6d3d;
+  box-shadow: 0 0 0 0 rgba(255, 109, 61, 0.58);
+  animation: cwCityPulse 1.9s ease-out infinite;
+}
+
+@keyframes cwCityPulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 109, 61, 0.58); }
+  70% { box-shadow: 0 0 0 9px rgba(255, 109, 61, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 109, 61, 0); }
+}
+
+.cw-city-model-button.cw-guide-focus {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 137, 80, 0.8),
+    0 0 22px rgba(255, 91, 45, 0.34);
+}
+
+.cw-city-model-modal[hidden] {
+  display: none !important;
+}
+
+.cw-city-model-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+}
+
+.cw-city-model-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 8, 12, 0.72);
+  backdrop-filter: blur(8px);
+}
+
+.cw-city-model-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(1080px, calc(100vw - 56px));
+  max-height: min(760px, calc(100vh - 56px));
+  overflow: auto;
+  padding: 20px;
+  border: 1px solid #355363;
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 88% 5%, rgba(255, 110, 61, 0.08), transparent 28%),
+    linear-gradient(180deg, #0b1821 0%, #07131a 100%);
+  box-shadow: 0 30px 100px rgba(0, 0, 0, 0.58);
+}
+
+.cw-city-model-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 18px;
+  align-items: start;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #233a47;
+}
+
+.cw-city-model-head h2 {
+  margin: 5px 0 0;
+  color: #eef5f8;
+  font-size: 18px;
+  letter-spacing: 0.05em;
+}
+
+.cw-city-model-head p {
+  max-width: 760px;
+  margin: 8px 0 0;
+  color: #9eb1bc;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.cw-city-model-close {
+  width: 38px;
+  height: 38px;
+  margin: 0;
+  padding: 0;
+  border-radius: 9px;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.cw-city-model-current {
+  margin-top: 14px;
+  padding: 9px 11px;
+  border: 1px solid rgba(94, 200, 255, 0.28);
+  border-radius: 8px;
+  background: rgba(10, 30, 41, 0.72);
+  color: #9fc8dc;
+  font: 8px var(--mono);
+}
+
+.cw-city-model-flow {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.cw-city-model-node {
+  min-width: 0;
+  padding: 14px 10px;
+  border: 1px solid #2a4552;
+  border-radius: 10px;
+  background: rgba(6, 19, 27, 0.92);
+  text-align: center;
+}
+
+.cw-city-model-node.emphasis {
+  border-color: rgba(94, 200, 255, 0.52);
+  box-shadow: inset 0 0 0 1px rgba(94, 200, 255, 0.07);
+}
+
+.cw-city-model-node b,
+.cw-city-model-node span {
+  display: block;
+}
+
+.cw-city-model-node b {
+  color: #ecf5f8;
+  font: 12px var(--mono);
+}
+
+.cw-city-model-node span {
+  margin-top: 4px;
+  color: #879da9;
+  font-size: 8px;
+}
+
+.cw-city-model-flow > i {
+  color: #527c90;
+  font-style: normal;
+  font-size: 18px;
+}
+
+.cw-city-model-mechanisms {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.cw-city-model-mechanisms article {
+  min-height: 108px;
+  padding: 12px;
+  border: 1px solid #243c48;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #091922 0%, #07131a 100%);
+}
+
+.cw-city-model-mechanisms strong,
+.cw-city-model-mechanisms span {
+  display: block;
+}
+
+.cw-city-model-mechanisms strong {
+  color: #d9e8ee;
+  font-size: 9px;
+}
+
+.cw-city-model-mechanisms span {
+  margin-top: 6px;
+  color: #8fa4b0;
+  font-size: 8px;
+  line-height: 1.55;
+}
+
+.cw-city-model-footer {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  gap: 16px;
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid rgba(255, 124, 70, 0.22);
+  border-radius: 10px;
+  background: rgba(255, 105, 54, 0.035);
+}
+
+.cw-city-model-footer strong {
+  color: #e7c3b0;
+  font-size: 9px;
+}
+
+.cw-city-model-footer span {
+  color: #9aaeba;
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.cw-guide-extra {
+  margin-top: 7px !important;
+  padding-top: 7px;
+  border-top: 1px solid rgba(94, 200, 255, 0.18);
+  color: #b4c7d1 !important;
+}
+
+.cw-guide-extra strong {
+  display: inline !important;
+  color: #efb291 !important;
+  font: inherit !important;
+}
+
+.timeline.cw-guide-timeline {
+  border-color: rgba(94, 200, 255, 0.72);
+  box-shadow: 0 0 0 1px rgba(94, 200, 255, 0.1), 0 0 24px rgba(47, 161, 219, 0.14);
+}
+
+body.cw-city-model-open {
+  overflow: hidden;
+}
+
+@media (max-width: 1280px) {
+  .cw-city-model-button {
+    width: 150px;
+    min-width: 150px;
+  }
+  .cw-city-model-copy strong {
+    font-size: 8px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .cw-city-model-button {
+    width: 136px;
+    min-width: 136px;
+  }
+  .cw-city-model-copy strong {
+    white-space: normal;
+    line-height: 1.15;
+  }
+  .cw-city-model-mechanisms {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .cw-city-model-modal {
+    padding: 14px;
+  }
+  .cw-city-model-dialog {
+    width: calc(100vw - 28px);
+    max-height: calc(100vh - 28px);
+  }
+  .cw-city-model-flow {
+    grid-template-columns: 1fr;
+  }
+  .cw-city-model-flow > i {
+    transform: rotate(90deg);
+    text-align: center;
+  }
+  .cw-city-model-mechanisms {
+    grid-template-columns: 1fr;
+  }
+  .cw-city-model-footer {
+    grid-template-columns: 1fr;
+  }
+}

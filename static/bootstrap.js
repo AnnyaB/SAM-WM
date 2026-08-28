@@ -72,13 +72,30 @@
 
   const loadApp = () => loadLocalScript('/static/app.js?v=0.8.0', 'Local app.js');
   const loadInterpretability = () => loadLocalScript(
-    '/static/interpretability.js?v=1.0.0',
-    'Guided interpretability layer',
+    '/static/interpretability.js?v=1.1.0',
+    'CoolWorld product experience',
   );
+  const loadCityModel = () => loadLocalScript(
+    '/static/city-model.js?v=1.0.1',
+    'SAM-WM city-model inspector',
+  );
+  const loadDashboardViz = () => loadStylesheet([
+    '/static/dashboard-viz.css?v=1.0.0',
+  ]);
+
+  const loadEnhancement = async (loader, label) => {
+    try {
+      await loader();
+    } catch (error) {
+      // Product guidance/inspectors are enhancements. They must never trap a
+      // user behind the loading overlay when the core 3D application is ready.
+      console.error(`${label} unavailable:`, error);
+    }
+  };
 
   (async () => {
     try {
-      setStatus('Loading real-map renderer…', 'Loading MapLibre GL JS.');
+      setStatus('Loading CoolWorld…', 'Preparing the 3D city map and SAM-WM interface.');
       await Promise.all([
         loadStylesheet([
           'https://unpkg.com/maplibre-gl@5.23.0/dist/maplibre-gl.css',
@@ -89,14 +106,25 @@
           'https://cdn.jsdelivr.net/npm/maplibre-gl@5.23.0/dist/maplibre-gl.js',
         ], 'maplibregl'),
       ]);
-      setStatus('Renderer loaded', 'Starting the real-map application and guided workflow.');
+
+      setStatus('City view ready', 'Starting the SAM-WM forecast experience.');
+
+      // app.js is the core renderer/runtime client. Only a core failure should
+      // keep the dependency overlay visible.
       await loadApp();
-      await loadInterpretability();
-      window.setTimeout(() => overlay.classList.add('hidden'), 250);
+      overlay.classList.add('hidden');
+
+      // Load presentation enhancements after the usable application is visible.
+      // A presentation-layer failure can never black-screen the core UI.
+      await Promise.all([
+        loadEnhancement(loadInterpretability, 'CoolWorld guidance'),
+        loadEnhancement(loadCityModel, 'SAM-WM city-model inspector'),
+        loadEnhancement(loadDashboardViz, 'Compact scientific dashboard'),
+      ]);
     } catch (error) {
       setStatus(
-        'RENDERER DEPENDENCY UNAVAILABLE',
-        `${error.message}. The dashboard will not fabricate a map. Check internet/content blockers and reload.`,
+        'MAP RENDERER UNAVAILABLE',
+        `${error.message}. Check your internet connection or content blocker and reload.`,
         true,
       );
     }
