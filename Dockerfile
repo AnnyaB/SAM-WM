@@ -23,7 +23,13 @@ COPY artifacts/FREEZE_MANIFEST.json ./artifacts/FREEZE_MANIFEST.json
 COPY artifacts/FAIRURBTEMP_PREREG.json ./artifacts/FAIRURBTEMP_PREREG.json
 COPY artifacts/FROZEN_SOURCE_SHA.txt ./artifacts/FROZEN_SOURCE_SHA.txt
 
-RUN python -m pip install --no-cache-dir '.[app]' \
+# Install the CPU PyTorch wheel explicitly. This keeps a CPU-only public demo
+# from pulling unnecessary accelerator runtimes while preserving the same
+# Python-level torch contract used by SAM-WM.
+RUN python -m pip install --no-cache-dir \
+      --index-url https://download.pytorch.org/whl/cpu \
+      'torch>=2.3,<3' \
+    && python -m pip install --no-cache-dir '.[app]' \
     && chown -R samwm:samwm /app
 
 USER samwm
