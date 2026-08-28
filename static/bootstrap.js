@@ -79,6 +79,9 @@
     '/static/city-model.js?v=1.0.1',
     'SAM-WM city-model inspector',
   );
+  const loadDashboardViz = () => loadStylesheet([
+    '/static/dashboard-viz.css?v=1.0.0',
+  ]);
 
   const loadEnhancement = async (loader, label) => {
     try {
@@ -111,11 +114,12 @@
       await loadApp();
       overlay.classList.add('hidden');
 
-      // Load user guidance and the city-model inspector after the usable app is
-      // visible. A presentation-layer failure can no longer black-screen the UI.
+      // Load presentation enhancements after the usable application is visible.
+      // A presentation-layer failure can never black-screen the core UI.
       await Promise.all([
         loadEnhancement(loadInterpretability, 'CoolWorld guidance'),
         loadEnhancement(loadCityModel, 'SAM-WM city-model inspector'),
+        loadEnhancement(loadDashboardViz, 'Compact scientific dashboard'),
       ]);
     } catch (error) {
       setStatus(
