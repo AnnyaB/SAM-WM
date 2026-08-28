@@ -196,10 +196,14 @@
     const truth = $('timelineTruth');
     if (!truth) return;
 
-    if (predictedMode()) {
-      truth.textContent = 'PLAYBACK · Press ▶ or drag the slider to inspect SAM-WM from +1 h to +6 h. This changes the displayed forecast hour; it does not generate new data.';
-    } else {
-      truth.textContent = 'PLAYBACK · Press ▶ or drag the slider to inspect the 65 recorded hourly city fields. Each stop is one stored provider observation.';
+    const nextText = predictedMode()
+      ? 'PLAYBACK · Press ▶ or drag the slider to inspect SAM-WM from +1 h to +6 h. This changes the displayed forecast hour; it does not generate new data.'
+      : 'PLAYBACK · Press ▶ or drag the slider to inspect the 65 recorded hourly city fields. Each stop is one stored provider observation.';
+
+    // Important: write only when the content actually changes. This keeps the
+    // enhancement idempotent and avoids MutationObserver feedback loops.
+    if (truth.textContent !== nextText) {
+      truth.textContent = nextText;
     }
   }
 
@@ -230,13 +234,11 @@
   }
 
   function observeTimelineState() {
-    const timeline = $('timelineTruth');
     const world = $('worldStatus');
 
-    if (timeline) {
-      new MutationObserver(explainTimeline)
-        .observe(timeline, { childList: true, subtree: true, characterData: true });
-    }
+    // Observe the mode source only. Never observe timelineTruth itself while
+    // also writing to timelineTruth: that creates a self-triggering mutation
+    // loop in browsers such as Safari and can starve the UI event loop.
     if (world) {
       new MutationObserver(explainTimeline)
         .observe(world, { childList: true, subtree: true, characterData: true });
