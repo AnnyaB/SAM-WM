@@ -10,6 +10,7 @@ concurrency:
 
 jobs:
   verify:
+    name: python-${{ matrix.python-version }}
     strategy:
       fail-fast: false
       matrix:
@@ -23,6 +24,103 @@ jobs:
           cache: pip
           cache-dependency-path: pyproject.toml
       - run: python -m pip install --upgrade pip
-      - run: python -m pip install --index-url https://download.pytorch.org/whl/cpu 'torch>=2.3,<3'
+      - run: >-
+          python -m pip install
+          --index-url https://download.pytorch.org/whl/cpu
+          'torch>=2.3,<3'
       - run: python -m pip install -e '.[dev,app]'
       - run: make PYTHON=python verify
+
+  frontend:
+    name: frontend-syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node --check static/app.js
+      - run: node --check static/bootstrap.js
+      - run: node --check static/product.js
+
+  runtime-contract:
+    name: immutable-runtime-contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - run: python -m pip install --upgrade pip
+      - run: >-
+          python -m pip install
+          --index-url https://download.pytorch.org/whl/cpu
+          'torch>=2.3,<3'
+      - run: python -m pip install -e '.[dev,app]'
+      - run: python verify_runtime.py
+
+  docker-smoke:
+    name: docker-public-demo-smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build runtime image
+        run: docker build -t sam-wm-coolworld:ci .
+      - name: Start public-safe runtime
+        run: >-
+          docker run -d --rm
+          --name sam-wm-coolworld-ci
+          -p 7860:7860
+          -e COOLWORLD_LIVE_API_ENABLED=0
+          sam-wm-coolworld:ci
+      - name: Wait for health
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:7860/api/health >/tmp/health.json; then
+              cat /tmp/health.json
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs sam-wm-coolworld-ci || true
+          exit 1
+      - name: Verify product endpoints without provider spend
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS http://127.0.0.1:7860/api/product-status > /tmp/product.json
+          curl -fsS http://127.0.0.1:7860/api/evidence-summary > /tmp/evidence.json
+          curl -fsS 'http://127.0.0.1:7860/api/evidence/timeline?limit=1' > /tmp/timeline.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          product = json.loads(Path('/tmp/product.json').read_text())
+          timeline = json.loads(Path('/tmp/timeline.json').read_text())
+
+          assert product['real_provider_evidence_ready'] is True
+          assert product['model_bundle_promoted'] is True
+          assert product['research_forecast_ready'] is True
+          assert product['live_provider_api_enabled'] is False
+          assert timeline['frame_count'] == 1
+          print('public-safe product smoke passed')
+          PY
+      - name: Verify live provider route is fail-closed by default
+        shell: bash
+        run: |
+          status=$(curl -sS -o /tmp/live.json -w '%{http_code}' \
+            -H 'Content-Type: application/json' \
+            -d '{}' \
+            http://127.0.0.1:7860/api/fortyguard/heatmap)
+          cat /tmp/live.json
+          test "$status" = "403"
+      - name: Container logs on failure
+        if: failure()
+        run: docker logs sam-wm-coolworld-ci || true
+      - name: Stop container
+        if: always()
+        run: docker stop sam-wm-coolworld-ci || true
