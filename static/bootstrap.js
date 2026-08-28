@@ -75,6 +75,10 @@
     '/static/interpretability.js?v=1.1.0',
     'CoolWorld product experience',
   );
+  const loadCityModel = () => loadLocalScript(
+    '/static/city-model.js?v=1.0.0',
+    'SAM-WM city-model inspector',
+  );
 
   (async () => {
     try {
@@ -92,6 +96,7 @@
       setStatus('City view ready', 'Starting the SAM-WM forecast experience.');
       await loadApp();
       await loadInterpretability();
+      await loadCityModel();
       window.setTimeout(() => overlay.classList.add('hidden'), 250);
     } catch (error) {
       setStatus(
