@@ -44,6 +44,32 @@ jobs:
       - run: node --check static/product.js
       - run: node --check static/interpretability.js
       - run: node --check static/city-model.js
+      - name: Guard Safari startup and cache-version contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F '/static/bootstrap.js?v=0.8.1' static/index.html
+          grep -F '/static/city-model.js?v=1.0.1' static/bootstrap.js
+          python - <<'PY'
+          from pathlib import Path
+
+          city = Path('static/city-model.js').read_text(encoding='utf-8')
+          boot = Path('static/bootstrap.js').read_text(encoding='utf-8')
+
+          # Regression guard: observing timelineTruth while writing to it creates
+          # a MutationObserver feedback loop that can starve Safari's event loop
+          # and leave the loading overlay permanently visible.
+          assert '.observe(timeline' not in city
+          assert 'if (truth.textContent !== nextText)' in city
+
+          # Presentation enhancements must not block the usable core 3D app.
+          hide = "overlay.classList.add('hidden')"
+          city_load = 'loadEnhancement(loadCityModel'
+          assert hide in boot
+          assert city_load in boot
+          assert boot.index(hide) < boot.index(city_load)
+          print('Safari startup regression contract passed')
+          PY
 
   runtime-contract:
     name: immutable-runtime-contract
