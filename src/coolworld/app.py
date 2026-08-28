@@ -109,7 +109,15 @@ def _deployment_state(frames: list[dict[str, Any]]) -> dict[str, Any]:
 
     context_ready = _has_consecutive_hourly_context(frames, context_hours)
     candra_ready = CANDRA_ACTIONS.is_file()
-    forecast_ready = bundle_ready and replay_ready and context_ready
+
+    # Research preview may use the frozen model on real context
+    # even when the separate operational provider-replay gate
+    # has not passed. It is never actionable.
+    research_preview_ready = bundle_ready and context_ready
+
+    # Production/operational forecast semantics remain strict.
+    forecast_ready = research_preview_ready and replay_ready
+
     counterfactual_ready = forecast_ready and candra_ready
 
     if counterfactual_ready:
@@ -126,6 +134,7 @@ def _deployment_state(frames: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "ready": counterfactual_ready,
         "forecast_ready": forecast_ready,
+        "research_preview_ready": research_preview_ready,
         "status": status,
         "model_id": CHECKPOINT.name if CHECKPOINT.is_file() else None,
         "checkpoint_sha256": checkpoint_sha,
@@ -212,6 +221,56 @@ def fortyguard_heatmap(payload: dict[str, Any]) -> dict[str, Any]:
         "map_data": map_data,
         "grid_signature": grid_signature(map_data),
         "stats_data": stats,
+    }
+
+
+@app.post("/api/forecast-preview")
+def forecast_preview(
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    """Run the frozen SAM-WM as a non-actionable research preview.
+
+    This route does NOT imply provider replay certification.
+    Production /api/forecast remains fail-closed.
+    """
+    frames = _timeline(1000)
+    state = _deployment_state(frames)
+
+    if not state["research_preview_ready"]:
+        raise HTTPException(
+            status_code=409,
+            detail=("RESEARCH_PREVIEW_REQUIRES_VALID_FROZEN_BUNDLE_AND_REAL_CONTEXT"),
+        )
+
+    requested_signature = payload.get("grid_signature")
+
+    if requested_signature and requested_signature != frames[-1]["grid_signature"]:
+        raise HTTPException(
+            status_code=409,
+            detail=("REQUEST_GRID_DOES_NOT_MATCH_REAL_CONTEXT"),
+        )
+
+    try:
+        prediction = baseline_forecast(
+            CHECKPOINT,
+            CALIBRATION,
+            EVALUATION,
+            frames,
+        )
+    except DeploymentError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc),
+        ) from exc
+
+    return {
+        "mode": "predicted_research_preview",
+        "label": ("SAM-WM RESEARCH FORECAST — NOT OPERATIONALLY CERTIFIED — NOT OBSERVED"),
+        "actionable": False,
+        "operational_forecast_ready": state["forecast_ready"],
+        "provider_replay_ready": state["provider_replay_ready"],
+        "provider_replay_status": state["provider_replay_status"],
+        "prediction": prediction,
     }
 
 

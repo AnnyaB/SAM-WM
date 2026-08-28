@@ -64,7 +64,7 @@
 
   const loadApp = () => new Promise((resolve, reject) => {
     const script = document.createElement('script');
-    script.src = '/static/app.js?v=0.5.0';
+    script.src = '/static/app.js?v=0.8.0';
     script.onload = resolve;
     script.onerror = () => reject(new Error('Local app.js could not be loaded'));
     document.body.appendChild(script);

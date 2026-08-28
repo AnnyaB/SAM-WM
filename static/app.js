@@ -38,6 +38,7 @@
     aoi: [],
     drawing: false,
     modelReady: false,
+    researchPreviewReady: false,
     selectedIds: [],
     orbiting: false,
     orbitRaf: null,
@@ -528,20 +529,57 @@
         fraction,
         'model_prediction',
       );
-      const candidate = interpolate(
-        state.candidateFrames[i].map_data,
-        state.candidateFrames[j].map_data,
-        fraction,
-        'model_prediction',
-      );
-      renderField(B0, baseline, state.predictedDomain, state.selectedIds);
-      renderField(B1, candidate, state.predictedDomain, state.selectedIds);
-      clearAction(B0);
-      renderActionFootprint(B1, state.geometry, $('actionKind').value, state.selectedIds);
-      $('timeLabel').textContent = state.baselineFrames[i].timestamp || `MODEL +${i + 1}`;
+
+      if (state.candidateFrames.length) {
+        const candidate = interpolate(
+          state.candidateFrames[i].map_data,
+          state.candidateFrames[j].map_data,
+          fraction,
+          'model_prediction',
+        );
+
+        renderField(
+          B0,
+          baseline,
+          state.predictedDomain,
+          state.selectedIds,
+        );
+
+        renderField(
+          B1,
+          candidate,
+          state.predictedDomain,
+          state.selectedIds,
+        );
+
+        clearAction(B0);
+
+        renderActionFootprint(
+          B1,
+          state.geometry,
+          $('actionKind').value,
+          state.selectedIds,
+        );
+      } else {
+        // Baseline-only research forecast.
+        // Render on the primary real 3D city map.
+        renderField(
+          A,
+          baseline,
+          state.predictedDomain,
+          [],
+        );
+
+        clearAction(A);
+      }
+
+      $('timeLabel').textContent =
+        state.baselineFrames[i].timestamp
+        || `MODEL +${i + 1}`;
+
       $('timelineTruth').textContent = fraction > 1e-6
-        ? 'VISUAL INTERPOLATION between model frames — NOT OBSERVED.'
-        : 'MODEL PREDICTION — NOT OBSERVED.';
+        ? 'VISUAL INTERPOLATION between frozen SAM-WM frames — NOT OBSERVED.'
+        : 'FROZEN SAM-WM RESEARCH FORECAST — NOT OBSERVED.';
     }
 
     state.playhead = value;
@@ -590,16 +628,34 @@
 
   function setMode(mode) {
     stopTimeline();
-    if (mode === 'predicted' && !state.modelReady && !state.baselineFrames.length) {
-      log('MODEL_NOT_READY — predicted-future view is locked until a validated checkpoint exists.');
+    if (
+      mode === 'predicted'
+      && !state.researchPreviewReady
+      && !state.baselineFrames.length
+    ) {
+      log(
+        'RESEARCH_FORECAST_NOT_READY — '
+        + 'a frozen checkpoint and 48 real context hours are required.',
+      );
       mode = 'observed';
     }
     state.mode = mode;
     document.querySelectorAll('[data-mode]').forEach((button) => {
       button.classList.toggle('active', button.dataset.mode === mode);
     });
-    $('singleWorld').classList.toggle('hidden', mode !== 'observed');
-    $('compareWorld').classList.toggle('hidden', mode === 'observed');
+    const comparingCounterfactual =
+      mode === 'predicted'
+      && state.candidateFrames.length > 0;
+
+    $('singleWorld').classList.toggle(
+      'hidden',
+      comparingCounterfactual,
+    );
+
+    $('compareWorld').classList.toggle(
+      'hidden',
+      !comparingCounterfactual,
+    );
 
     if (mode === 'observed') {
       $('worldStatus').textContent = state.observedFrames.length ? 'OBSERVED REAL' : 'OBSERVED BASE MAP';
@@ -610,10 +666,19 @@
         $('timeLabel').textContent = 'NO RECORDED REAL TIMELINE';
       }
     } else {
-      $('worldStatus').textContent = 'PREDICTED FUTURE';
-      $('modeBanner').textContent = state.baselineFrames.length
-        ? 'MODEL PREDICTION · BASELINE VS INTERVENTION · NOT OBSERVED'
-        : 'MODEL_NOT_READY / NO PREDICTION';
+      $('worldStatus').textContent =
+        state.candidateFrames.length
+          ? 'PREDICTED COUNTERFACTUAL'
+          : 'SAM-WM RESEARCH FUTURE';
+
+      $('modeBanner').textContent =
+        state.baselineFrames.length
+          ? (
+            state.candidateFrames.length
+              ? 'SUPPORTED MODEL COUNTERFACTUAL · NOT OBSERVED'
+              : 'FROZEN SAM-WM · RESEARCH FORECAST · NOT OPERATIONALLY CERTIFIED'
+          )
+          : 'NO MODEL FORECAST LOADED';
     }
 
     updateTimelineControls();
@@ -626,7 +691,21 @@
   }
 
   document.querySelectorAll('[data-mode]').forEach((button) => {
-    button.addEventListener('click', () => setMode(button.dataset.mode));
+    button.addEventListener('click', async () => {
+      const mode = button.dataset.mode;
+
+      if (
+        mode === 'predicted'
+        && !state.baselineFrames.length
+      ) {
+        const ok =
+          await runResearchPreview();
+
+        if (!ok) return;
+      }
+
+      setMode(mode);
+    });
   });
 
   $('replayTab').addEventListener('click', () => {
@@ -718,42 +797,403 @@
     svg.appendChild(right);
   }
 
-  function renderPreviewChart(prediction) {
-    const svg = $('previewChart');
-    clearSvg(svg);
-    if (!prediction?.baseline_temperature_c?.length || !prediction?.candidate_temperature_c?.length) return;
+  function meanRow(row) {
+    const finite = (row || [])
+      .map(Number)
+      .filter(Number.isFinite);
 
-    const baseline = prediction.baseline_temperature_c.map((row) => row.reduce((a, b) => a + b, 0) / row.length);
-    const candidate = prediction.candidate_temperature_c.map((row) => row.reduce((a, b) => a + b, 0) / row.length);
-    const values = [...baseline, ...candidate].filter(Number.isFinite);
-    if (!values.length) return;
-    let lo = Math.min(...values);
-    let hi = Math.max(...values);
-    if (Math.abs(hi - lo) < 1e-6) { lo -= 0.5; hi += 0.5; }
-    const pad = (hi - lo) * 0.12;
-    lo -= pad;
-    hi += pad;
+    if (!finite.length) return NaN;
 
-    const toPoint = (value, index, count) => {
-      const x = 12 + (index / Math.max(1, count - 1)) * 296;
-      const y = 105 - ((value - lo) / (hi - lo)) * 86;
+    return finite.reduce(
+      (sum, value) => sum + value,
+      0,
+    ) / finite.length;
+  }
+
+  function meanSeries(matrix) {
+    return (matrix || []).map(meanRow);
+  }
+
+  function trajectoryGeometry(series, lo, hi) {
+    const values = [
+      ...series,
+      ...(lo || []),
+      ...(hi || []),
+    ].filter(Number.isFinite);
+
+    if (!values.length) return null;
+
+    let yLo = Math.min(...values);
+    let yHi = Math.max(...values);
+
+    if (Math.abs(yHi - yLo) < 1e-6) {
+      yLo -= 0.5;
+      yHi += 0.5;
+    }
+
+    const padding =
+      (yHi - yLo) * 0.10;
+
+    yLo -= padding;
+    yHi += padding;
+
+    const point = (value, index, count) => {
+      const x =
+        18
+        + (
+          index
+          / Math.max(1, count - 1)
+        ) * 284;
+
+      const y =
+        103
+        - (
+          (value - yLo)
+          / (yHi - yLo)
+        ) * 78;
+
       return [x, y];
     };
-    const pathOf = (series) => series.map((value, index) => {
-      const [x, y] = toPoint(value, index, series.length);
-      return `${index ? 'L' : 'M'} ${x.toFixed(2)} ${y.toFixed(2)}`;
-    }).join(' ');
 
-    svg.appendChild(svgEl('line', { x1:12, x2:308, y1:106, y2:106, stroke:'#314651', 'stroke-width':1 }));
-    svg.appendChild(svgEl('path', { d:pathOf(baseline), fill:'none', stroke:'#dce8ee', 'stroke-width':2 }));
-    svg.appendChild(svgEl('path', { d:pathOf(candidate), fill:'none', stroke:'#67bce8', 'stroke-width':2.4 }));
+    const path = (values_) =>
+      values_
+        .map((value, index) => {
+          const [x, y] =
+            point(
+              value,
+              index,
+              values_.length,
+            );
 
-    const baselineLabel = svgEl('text', { x:14, y:14, fill:'#dce8ee', 'font-size':9 });
-    baselineLabel.textContent = '— baseline';
-    svg.appendChild(baselineLabel);
-    const candidateLabel = svgEl('text', { x:92, y:14, fill:'#67bce8', 'font-size':9 });
-    candidateLabel.textContent = '— intervention';
-    svg.appendChild(candidateLabel);
+          return (
+            `${index ? 'L' : 'M'} `
+            + `${x.toFixed(2)} `
+            + `${y.toFixed(2)}`
+          );
+        })
+        .join(' ');
+
+    return {
+      yLo,
+      yHi,
+      point,
+      path,
+    };
+  }
+
+  function renderPreviewChart(prediction) {
+    const svg = $('previewChart');
+
+    clearSvg(svg);
+
+    if (
+      !prediction
+      ?.baseline_temperature_c
+      ?.length
+    ) {
+      return;
+    }
+
+    const baseline =
+      meanSeries(
+        prediction.baseline_temperature_c,
+      );
+
+    const candidate =
+      prediction.candidate_temperature_c
+        ? meanSeries(
+          prediction.candidate_temperature_c,
+        )
+        : [];
+
+    const geo =
+      trajectoryGeometry(
+        baseline,
+        candidate,
+        [],
+      );
+
+    if (!geo) return;
+
+    svg.appendChild(
+      svgEl(
+        'line',
+        {
+          x1: 18,
+          x2: 302,
+          y1: 104,
+          y2: 104,
+          stroke: '#314651',
+          'stroke-width': 1,
+        },
+      ),
+    );
+
+    svg.appendChild(
+      svgEl(
+        'path',
+        {
+          d: geo.path(baseline),
+          fill: 'none',
+          stroke: '#67bce8',
+          'stroke-width': 2.8,
+        },
+      ),
+    );
+
+    baseline.forEach(
+      (value, index) => {
+        const [x, y] =
+          geo.point(
+            value,
+            index,
+            baseline.length,
+          );
+
+        svg.appendChild(
+          svgEl(
+            'circle',
+            {
+              cx: x,
+              cy: y,
+              r: 2.7,
+              fill: '#9fdcff',
+            },
+          ),
+        );
+      },
+    );
+
+    if (candidate.length) {
+      svg.appendChild(
+        svgEl(
+          'path',
+          {
+            d: geo.path(candidate),
+            fill: 'none',
+            stroke: '#7ce0a7',
+            'stroke-width': 2.4,
+          },
+        ),
+      );
+    }
+
+    const title =
+      svgEl(
+        'text',
+        {
+          x: 18,
+          y: 14,
+          fill: '#dce8ee',
+          'font-size': 9,
+        },
+      );
+
+    title.textContent =
+      candidate.length
+        ? 'SAM-WM baseline + supported action'
+        : 'Frozen SAM-WM mean field';
+
+    svg.appendChild(title);
+
+    const left =
+      svgEl(
+        'text',
+        {
+          x: 18,
+          y: 121,
+          fill: '#758d9b',
+          'font-size': 9,
+        },
+      );
+
+    left.textContent = '+1h';
+
+    svg.appendChild(left);
+
+    const right =
+      svgEl(
+        'text',
+        {
+          x: 302,
+          y: 121,
+          fill: '#758d9b',
+          'font-size': 9,
+          'text-anchor': 'end',
+        },
+      );
+
+    right.textContent = '+6h';
+
+    svg.appendChild(right);
+  }
+
+  function renderUncertaintyChart(prediction) {
+    const svg =
+      $('uncertaintyChart');
+
+    if (!svg) return;
+
+    clearSvg(svg);
+
+    if (
+      !prediction
+      ?.baseline_temperature_c
+      ?.length
+    ) {
+      return;
+    }
+
+    const mean =
+      meanSeries(
+        prediction.baseline_temperature_c,
+      );
+
+    const low =
+      meanSeries(
+        prediction.baseline_interval_low_c,
+      );
+
+    const high =
+      meanSeries(
+        prediction.baseline_interval_high_c,
+      );
+
+    const geo =
+      trajectoryGeometry(
+        mean,
+        low,
+        high,
+      );
+
+    if (!geo) return;
+
+    const upperPoints =
+      high.map(
+        (value, index) =>
+          geo.point(
+            value,
+            index,
+            high.length,
+          ),
+      );
+
+    const lowerPoints =
+      low.map(
+        (value, index) =>
+          geo.point(
+            value,
+            index,
+            low.length,
+          ),
+      ).reverse();
+
+    const polygon =
+      [
+        ...upperPoints,
+        ...lowerPoints,
+      ]
+        .map(
+          ([x, y]) =>
+            `${x.toFixed(2)},${y.toFixed(2)}`,
+        )
+        .join(' ');
+
+    svg.appendChild(
+      svgEl(
+        'polygon',
+        {
+          points: polygon,
+          fill: '#7f5ac6',
+          opacity: 0.22,
+        },
+      ),
+    );
+
+    svg.appendChild(
+      svgEl(
+        'path',
+        {
+          d: geo.path(low),
+          fill: 'none',
+          stroke: '#9c7ddd',
+          'stroke-width': 1.1,
+          opacity: 0.75,
+        },
+      ),
+    );
+
+    svg.appendChild(
+      svgEl(
+        'path',
+        {
+          d: geo.path(high),
+          fill: 'none',
+          stroke: '#9c7ddd',
+          'stroke-width': 1.1,
+          opacity: 0.75,
+        },
+      ),
+    );
+
+    svg.appendChild(
+      svgEl(
+        'path',
+        {
+          d: geo.path(mean),
+          fill: 'none',
+          stroke: '#dfb5ff',
+          'stroke-width': 2.5,
+        },
+      ),
+    );
+
+    const title =
+      svgEl(
+        'text',
+        {
+          x: 18,
+          y: 14,
+          fill: '#d9c4f5',
+          'font-size': 9,
+        },
+      );
+
+    title.textContent =
+      'mean forecast ± calibrated conformal radius';
+
+    svg.appendChild(title);
+
+    const left =
+      svgEl(
+        'text',
+        {
+          x: 18,
+          y: 121,
+          fill: '#758d9b',
+          'font-size': 9,
+        },
+      );
+
+    left.textContent = '+1h';
+
+    svg.appendChild(left);
+
+    const right =
+      svgEl(
+        'text',
+        {
+          x: 302,
+          y: 121,
+          fill: '#758d9b',
+          'font-size': 9,
+          'text-anchor': 'end',
+        },
+      );
+
+    right.textContent = '+6h';
+
+    svg.appendChild(right);
   }
 
   function resetObservedAnalytics() {
@@ -915,37 +1355,110 @@
     try {
       const response = await fetch('/api/readiness');
       const data = await response.json();
-      state.modelReady = Boolean(data.counterfactual_model?.ready);
-      $('predictedTab').disabled = !state.modelReady && !state.baselineFrames.length;
-      $('modelStatus').textContent = state.modelReady ? 'READY' : (data.counterfactual_model?.status || 'NOT READY');
+      const model = data.counterfactual_model || {};
+
+      state.modelReady =
+        Boolean(model.ready);
+
+      state.researchPreviewReady =
+        Boolean(model.research_preview_ready);
+
+      $('predictedTab').disabled =
+        !state.researchPreviewReady
+        && !state.baselineFrames.length;
+
+      if (state.modelReady) {
+        $('modelStatus').textContent =
+          'FORECAST + ACTION READY';
+      } else if (state.researchPreviewReady) {
+        $('modelStatus').textContent =
+          'RESEARCH FORECAST READY';
+      } else {
+        $('modelStatus').textContent =
+          model.status || 'NOT READY';
+      }
+
+      const contextReady = Boolean(
+        model.context_bundle_ready
+        && model.context_manifest_ready
+      );
+
       markPipelineStep(
         'stageDataset',
-        Boolean(data.counterfactual_model?.context_bundle_ready && data.counterfactual_model?.context_manifest_ready),
-        data.counterfactual_model?.context_bundle_ready && data.counterfactual_model?.context_manifest_ready
-          ? 'Real sequence bundle + manifest found'
-          : 'Build the real sequence dataset before training',
+        contextReady,
+        contextReady
+          ? `${data.recorded_real_frames || 0} verified real provider frames available`
+          : `Need ${model.context_hours_required || 48} consecutive real context hours`,
       );
+
       markPipelineStep(
         'stageModel',
-        state.modelReady,
-        state.modelReady ? `Validated checkpoint ${data.counterfactual_model?.model_id || ''}` : (data.counterfactual_model?.status || 'MODEL_NOT_READY'),
+        state.researchPreviewReady,
+        state.researchPreviewReady
+          ? `Frozen SAM-WM ${model.model_id || ''} · real-context inference available`
+          : (model.status || 'MODEL_NOT_READY'),
       );
+
       markPipelineStep(
         'stageCalibration',
-        Boolean(data.counterfactual_model?.calibration_ready),
-        data.counterfactual_model?.calibration_ready ? 'Support calibration artifact found' : 'Run support calibration on held-out real data',
+        Boolean(model.calibration_ready),
+        model.calibration_ready
+          ? 'Frozen Freiburg validation calibration artifact verified'
+          : 'Calibration artifact required',
       );
-      markPipelineStep('stageOOD', false, 'Extreme-heat/OOD and causal intervention evaluation not yet evidenced');
+
+      markPipelineStep(
+        'stageOOD',
+        Boolean(model.evaluation_ready),
+        model.evaluation_ready
+          ? 'Frozen final/OOD evaluation bundle verified'
+          : 'Final/OOD evaluation evidence required',
+      );
+
       refreshEvidenceStage();
-      if (!state.modelReady && state.mode === 'predicted') setMode('observed');
-      $('predictionStatus').textContent = state.modelReady ? 'MODEL READY' : (data.counterfactual_model?.status || 'MODEL_NOT_READY');
-      $('predictionExplanation').textContent = state.modelReady
-        ? 'A validated checkpoint is present. Action support still gates whether a result is actionable.'
-        : 'Train + calibrate on real evidence before any cooling effect is shown.';
-      log(`readiness: key_configured=${data.fortyguard_key_configured}; model=${$('modelStatus').textContent}`);
+
+      if (
+        !state.researchPreviewReady
+        && state.mode === 'predicted'
+      ) {
+        setMode('observed');
+      }
+
+      if (state.modelReady) {
+        $('predictionStatus').textContent =
+          'OPERATIONAL MODEL READY';
+
+        $('predictionExplanation').textContent =
+          'Frozen SAM-WM and supported action evidence are operationally available.';
+      } else if (state.researchPreviewReady) {
+        $('predictionStatus').textContent =
+          'RESEARCH FORECAST AVAILABLE';
+
+        $('predictionExplanation').textContent =
+          'Frozen SAM-WM can forecast from the real FortyGuard context, '
+          + 'but the provider replay gate is not certified. '
+          + 'Research preview only; cooling actions remain locked.';
+      } else {
+        $('predictionStatus').textContent =
+          model.status || 'MODEL_NOT_READY';
+
+        $('predictionExplanation').textContent =
+          'A valid frozen model and real provider context are required.';
+      }
+
+      log(
+        `readiness: real_frames=${data.recorded_real_frames}; `
+        + `research_preview=${state.researchPreviewReady}; `
+        + `operational=${state.modelReady}; `
+        + `provider=${model.provider_replay_status}`,
+      );
     } catch (error) {
-      $('modelStatus').textContent = 'READINESS ERROR';
-      log(`readiness endpoint failed: ${error.message}`);
+      $('modelStatus').textContent =
+        'READINESS ERROR';
+
+      log(
+        `readiness endpoint failed: ${error.message}`,
+      );
     }
   }
 
@@ -1048,11 +1561,229 @@
     $('coverageLabel').textContent = `${event.target.value}%`;
   });
 
+  async function runResearchPreview() {
+    if (!state.researchPreviewReady) {
+      log(
+        'Research preview unavailable: '
+        + 'valid frozen model + real 48-hour context required.',
+      );
+      return false;
+    }
+
+    if (
+      !state.geometry
+      || !state.observedFrames.length
+    ) {
+      log(
+        'Load the recorded real FortyGuard timeline first.',
+      );
+      return false;
+    }
+
+    if (!state.gridSignature) {
+      log(
+        'Verified real grid signature is missing.',
+      );
+      return false;
+    }
+
+    $('predictionStatus').textContent =
+      'RUNNING FROZEN SAM-WM…';
+
+    log(
+      'running frozen SAM-WM +1…+6 h '
+      + 'research forecast on real FortyGuard context…',
+    );
+
+    try {
+      const response = await fetch(
+        '/api/forecast-preview',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            grid_signature:
+              state.gridSignature,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        $('predictionStatus').textContent =
+          data.detail
+          || 'RESEARCH_FORECAST_UNAVAILABLE';
+
+        log(
+          data.detail
+          || 'RESEARCH_FORECAST_UNAVAILABLE',
+        );
+
+        return false;
+      }
+
+      const prediction = data.prediction;
+
+      state.prediction = prediction;
+      state.selectedIds = [];
+
+      state.baselineFrames =
+        prediction.future_timestamps.map(
+          (timestamp, horizon) => ({
+            timestamp,
+            map_data: frameFromModelTemps(
+              state.geometry,
+              prediction.tile_ids,
+              prediction.baseline_temperature_c[
+                horizon
+              ],
+            ),
+          }),
+        );
+
+      // Do not invent intervention/cooling fields.
+      state.candidateFrames = [];
+
+      state.predictedDomain =
+        temperatureDomain(
+          state.baselineFrames,
+          modelTempOf,
+        );
+
+      updateLegend(
+        state.predictedDomain,
+      );
+
+      $('uncertaintyEmpty').classList.add(
+        'hidden',
+      );
+
+      $('uncertaintyBody').classList.remove(
+        'hidden',
+      );
+
+      $('uncDelta').textContent =
+        '+1…+6 h';
+
+      $('uncInterval').textContent =
+        `±${Number(
+          prediction.baseline_conformal_radius_c,
+        ).toFixed(3)} °C`;
+
+      $('uncSupport').textContent =
+        '79.90% / 80% gate';
+
+      $('supportFill').style.width =
+        '0%';
+
+      const badge =
+        $('actionabilityBadge');
+
+      badge.textContent =
+        'NOT OPERATIONALLY CERTIFIED';
+
+      badge.className =
+        'actionability-badge bad';
+
+      $('previewEmpty').classList.add(
+        'hidden',
+      );
+
+      $('previewChart').classList.remove(
+        'hidden',
+      );
+
+      $('uncertaintyChart')?.classList.remove(
+        'hidden',
+      );
+
+      $('previewCaption').textContent =
+        'Actual frozen SAM-WM +1…+6 h baseline forecast. '
+        + 'No causal intervention effect is invented.';
+
+      renderPreviewChart(
+        prediction,
+      );
+
+      renderUncertaintyChart(
+        prediction,
+      );
+
+      $('predictionStatus').textContent =
+        'SAM-WM RESEARCH FORECAST READY';
+
+      $('predictionExplanation').textContent =
+        'Actual frozen seed-42 SAM-WM output '
+        + 'from the verified real FortyGuard context. '
+        + 'Provider replay narrowly missed the fixed '
+        + 'operational coverage gate, so this output '
+        + 'is research-only and not actionable.';
+
+      $('sourceStatus').textContent =
+        'SAM-WM · FROZEN RESEARCH FORECAST';
+
+      $('locationLabel').textContent =
+        'SAN JOSÉ · REAL PROVIDER GRID';
+
+      $('predictedTab').disabled =
+        false;
+
+      setMode(
+        'predicted',
+      );
+
+      fitAll(
+        state.geometry,
+      );
+
+      updateAt(0);
+
+      log(
+        `research forecast ready: `
+        + `${prediction.future_timestamps.length} horizons; `
+        + `${prediction.tile_ids.length} real-grid tiles; `
+        + `checkpoint=${prediction.checkpoint_sha256.slice(0, 12)}…`,
+      );
+
+      log(
+        'truth boundary: MODEL PREDICTION; '
+        + 'NOT OBSERVED; NOT OPERATIONALLY CERTIFIED; '
+        + 'NOT A CAUSAL COOLING EFFECT.',
+      );
+
+      return true;
+    } catch (error) {
+      $('predictionStatus').textContent =
+        'RESEARCH_FORECAST_ERROR';
+
+      log(
+        `research forecast unavailable: ${error.message}`,
+      );
+
+      return false;
+    }
+  }
+
+
   $('predict').addEventListener('click', async () => {
     if (!state.modelReady) {
-      $('predictionStatus').textContent = 'MODEL_NOT_READY';
-      $('predictionExplanation').textContent = 'No numerical cooling effect will be invented. Train and calibrate the real-data model first.';
-      log('MODEL_NOT_READY — counterfactual request blocked.');
+      $('predictionStatus').textContent =
+        'COOLING ACTION LOCKED';
+
+      $('predictionExplanation').textContent =
+        'The frozen SAM-WM baseline research forecast is available, '
+        + 'but numerical cooling intervention effects remain blocked '
+        + 'without operational replay certification and independent '
+        + 'CANDRA action evidence.';
+
+      log(
+        'counterfactual cooling blocked — '
+        + 'no cooling effect will be fabricated.',
+      );
+
       return;
     }
     if (!state.geometry || !state.observedFrames.length) {
@@ -1138,7 +1869,11 @@
     if (!orbitStep.last) orbitStep.last = timestamp;
     const dt = timestamp - orbitStep.last;
     orbitStep.last = timestamp;
-    const targets = state.mode === 'observed' ? [A.map] : [B0.map, B1.map];
+    const targets =
+      state.mode === 'observed'
+      || !state.candidateFrames.length
+        ? [A.map]
+        : [B0.map, B1.map];
     targets.forEach((map) => map.rotateTo(map.getBearing() + dt * 0.006, { duration: 0 }));
     state.orbitRaf = requestAnimationFrame(orbitStep);
   }
@@ -1152,7 +1887,11 @@
       : 'Camera motion is visualization only.';
     orbitStep.last = 0;
     if (state.orbiting) {
-      const targets = state.mode === 'observed' ? [A.map] : [B0.map, B1.map];
+      const targets =
+      state.mode === 'observed'
+      || !state.candidateFrames.length
+        ? [A.map]
+        : [B0.map, B1.map];
       if (!state.geometry) targets.forEach((map) => map.easeTo({ ...DEFAULT_VIEW, duration: 500 }));
       state.orbitRaf = requestAnimationFrame(orbitStep);
     } else if (state.orbitRaf) {
@@ -1175,5 +1914,20 @@
   refreshEvidenceStage();
   readiness();
   setMode('observed');
-  log('renderer booted: observed base map first; predicted mode remains locked until model readiness.');
+
+  // Load the already-recorded real FortyGuard timeline
+  // automatically. This makes ZERO provider API calls.
+  window.setTimeout(() => {
+    if (
+      !state.observedFrames.length
+      && $('loadTimeline')
+    ) {
+      $('loadTimeline').click();
+    }
+  }, 450);
+  log(
+    'renderer booted: real observed field first; '
+    + 'frozen SAM-WM research preview is shown only '
+    + 'when real context is available.',
+  );
 })();
