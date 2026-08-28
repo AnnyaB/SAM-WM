@@ -43,6 +43,7 @@
   ];
 
   let currentStep = -1;
+  let initialized = false;
 
   function injectStylesheet() {
     if (document.querySelector('link[data-cw-interpretability]')) return;
@@ -319,6 +320,9 @@
   }
 
   async function init() {
+    if (initialized) return;
+    initialized = true;
+
     injectStylesheet();
     makeGuide();
     addColourExplanation();
@@ -340,7 +344,10 @@
     }
   }
 
-  window.addEventListener('load', () => {
-    window.setTimeout(init, 1200);
-  });
+  const scheduleInit = () => window.setTimeout(init, 1200);
+  if (document.readyState === 'complete') {
+    scheduleInit();
+  } else {
+    window.addEventListener('load', scheduleInit, { once: true });
+  }
 })();
