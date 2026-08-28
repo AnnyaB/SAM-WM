@@ -42,6 +42,7 @@ jobs:
       - run: node --check static/app.js
       - run: node --check static/bootstrap.js
       - run: node --check static/product.js
+      - run: node --check static/interpretability.js
 
   runtime-contract:
     name: immutable-runtime-contract
@@ -88,13 +89,16 @@ jobs:
           done
           docker logs sam-wm-coolworld-ci || true
           exit 1
-      - name: Verify product endpoints without provider spend
+      - name: Verify product endpoints and guided UI without provider spend
         shell: bash
         run: |
           set -euo pipefail
           curl -fsS http://127.0.0.1:7860/api/product-status > /tmp/product.json
           curl -fsS http://127.0.0.1:7860/api/evidence-summary > /tmp/evidence.json
           curl -fsS 'http://127.0.0.1:7860/api/evidence/timeline?limit=1' > /tmp/timeline.json
+          curl -fsS http://127.0.0.1:7860/static/interpretability.js > /tmp/interpretability.js
+          grep -F 'START HERE · GUIDED DEMO' /tmp/interpretability.js
+          grep -F 'How to read this coloured mask' /tmp/interpretability.js
           python - <<'PY'
           import json
           from pathlib import Path
@@ -107,7 +111,7 @@ jobs:
           assert product['research_forecast_ready'] is True
           assert product['live_provider_api_enabled'] is False
           assert timeline['frame_count'] == 1
-          print('public-safe product smoke passed')
+          print('public-safe product + guided UI smoke passed')
           PY
       - name: Verify live provider route is fail-closed by default
         shell: bash
