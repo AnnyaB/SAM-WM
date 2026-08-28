@@ -76,9 +76,19 @@
     'CoolWorld product experience',
   );
   const loadCityModel = () => loadLocalScript(
-    '/static/city-model.js?v=1.0.0',
+    '/static/city-model.js?v=1.0.1',
     'SAM-WM city-model inspector',
   );
+
+  const loadEnhancement = async (loader, label) => {
+    try {
+      await loader();
+    } catch (error) {
+      // Product guidance/inspectors are enhancements. They must never trap a
+      // user behind the loading overlay when the core 3D application is ready.
+      console.error(`${label} unavailable:`, error);
+    }
+  };
 
   (async () => {
     try {
@@ -93,11 +103,20 @@
           'https://cdn.jsdelivr.net/npm/maplibre-gl@5.23.0/dist/maplibre-gl.js',
         ], 'maplibregl'),
       ]);
+
       setStatus('City view ready', 'Starting the SAM-WM forecast experience.');
+
+      // app.js is the core renderer/runtime client. Only a core failure should
+      // keep the dependency overlay visible.
       await loadApp();
-      await loadInterpretability();
-      await loadCityModel();
-      window.setTimeout(() => overlay.classList.add('hidden'), 250);
+      overlay.classList.add('hidden');
+
+      // Load user guidance and the city-model inspector after the usable app is
+      // visible. A presentation-layer failure can no longer black-screen the UI.
+      await Promise.all([
+        loadEnhancement(loadInterpretability, 'CoolWorld guidance'),
+        loadEnhancement(loadCityModel, 'SAM-WM city-model inspector'),
+      ]);
     } catch (error) {
       setStatus(
         'MAP RENDERER UNAVAILABLE',
