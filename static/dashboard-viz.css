@@ -1,0 +1,184 @@
+/* CoolWorld compact scientific dashboard polish.
+ * Presentation only: this file changes no SAM-WM weights, predictions,
+ * benchmark artifacts, thresholds, provider evidence, or causal logic.
+ */
+
+/* Keep the 3D city dominant while guaranteeing the four analytical panels fit
+ * completely inside the viewport on laptop/Safari layouts. */
+@media (min-width: 1181px) {
+  .world-column {
+    grid-template-rows: minmax(0, 1fr) clamp(168px, 18.5vh, 184px);
+  }
+}
+
+.analytics-strip {
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #203845;
+}
+
+.analytics-strip .analytics-card {
+  position: relative;
+  min-height: 0;
+  height: 100%;
+  padding: 9px 11px 8px;
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(102, 183, 232, 0.027) 1px, transparent 1px) 0 0 / 100% 24px,
+    linear-gradient(90deg, rgba(102, 183, 232, 0.022) 1px, transparent 1px) 0 0 / 28px 100%,
+    radial-gradient(circle at 72% -18%, rgba(72, 174, 225, 0.10), transparent 42%),
+    linear-gradient(180deg, #0b1923 0%, #08141d 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(180, 224, 246, 0.05),
+    inset 0 -14px 24px rgba(0, 0, 0, 0.12);
+}
+
+.analytics-strip .analytics-card::after {
+  content: '';
+  position: absolute;
+  left: 11px;
+  right: 11px;
+  bottom: 6px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(99, 190, 234, 0.18), transparent);
+  pointer-events: none;
+}
+
+.analytics-strip .analytics-title {
+  margin-bottom: 5px;
+  font-size: 8.5px;
+  line-height: 1.15;
+  letter-spacing: 0.11em;
+  color: #d1e0e7;
+}
+
+/* The SVGs keep their scientific 320×126 viewBox; only their rendered size is
+ * compacted. This preserves every plotted point while recovering map height. */
+.analytics-strip .chart {
+  display: block;
+  width: 100%;
+  height: 76px;
+  max-height: 76px;
+  overflow: visible;
+  filter: drop-shadow(0 5px 7px rgba(0, 0, 0, 0.18));
+}
+
+.analytics-strip #uncertaintyChart {
+  height: 52px;
+  max-height: 52px;
+  margin-top: 1px;
+}
+
+.analytics-strip #histogram rect,
+.analytics-strip #uncertaintyChart path,
+.analytics-strip #uncertaintyChart polygon,
+.analytics-strip #previewChart path,
+.analytics-strip #previewChart polyline,
+.analytics-strip #previewChart circle {
+  filter: drop-shadow(1px 2px 2px rgba(2, 9, 13, 0.42));
+}
+
+.analytics-strip svg text {
+  font-family: var(--mono);
+  font-size: 7px;
+}
+
+.analytics-strip .analytics-empty {
+  height: 76px;
+  padding: 8px;
+  font-size: 7.5px;
+  border-radius: 6px;
+}
+
+.analytics-strip .analytics-caption {
+  display: -webkit-box;
+  margin-top: 2px;
+  overflow: hidden;
+  color: #8096a3;
+  font-size: 6.8px;
+  line-height: 1.28;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.analytics-strip .summary-grid {
+  row-gap: 6px;
+  column-gap: 9px;
+  padding-top: 3px;
+}
+
+.analytics-strip .summary-grid span {
+  font-size: 7.5px;
+  letter-spacing: 0.07em;
+}
+
+.analytics-strip .summary-grid strong {
+  font-size: 9.5px;
+}
+
+.analytics-strip .uncertainty-body {
+  padding-top: 1px;
+}
+
+.analytics-strip .uncertainty-row {
+  margin: 4px 0;
+  font-size: 7.5px;
+}
+
+.analytics-strip .uncertainty-row strong {
+  font-size: 8.5px;
+}
+
+.analytics-strip .support-track {
+  height: 5px;
+  margin: 5px 0 2px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.analytics-strip .support-fill {
+  box-shadow: 0 0 8px rgba(102, 183, 232, 0.18);
+}
+
+.analytics-strip .actionability-badge {
+  margin-top: 5px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  font-size: 7.2px;
+  line-height: 1.15;
+}
+
+/* A restrained depth cue: scientific panels read as separate measurement
+ * surfaces without distorting axes or implying extra dimensions in the data. */
+.analytics-strip .chart:not(.hidden) {
+  transform: perspective(700px) rotateX(0.35deg);
+  transform-origin: 50% 100%;
+}
+
+@media (max-height: 760px) and (min-width: 1181px) {
+  .world-column {
+    grid-template-rows: minmax(0, 1fr) 158px;
+  }
+
+  .analytics-strip .analytics-card {
+    padding: 7px 9px 6px;
+  }
+
+  .analytics-strip .chart {
+    height: 62px;
+    max-height: 62px;
+  }
+
+  .analytics-strip #uncertaintyChart {
+    height: 40px;
+    max-height: 40px;
+  }
+
+  .analytics-strip .analytics-caption {
+    -webkit-line-clamp: 1;
+  }
+
+  .analytics-strip .summary-grid {
+    row-gap: 4px;
+  }
+}
