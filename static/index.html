@@ -4,22 +4,27 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="dark" />
+  <meta
+    name="description"
+    content="CoolWorld uses real FortyGuard thermal evidence and the frozen SAM-WM world model to forecast urban heat and prioritize future hotspots without inventing causal cooling effects."
+  />
   <title>SAM-WM · CoolWorld</title>
   <link rel="stylesheet" href="/static/styles.css?v=0.8.0" />
+  <link rel="stylesheet" href="/static/product.css?v=1.0.0" />
 </head>
 <body>
   <div id="dependencyOverlay" class="dependency-overlay">
     <div class="dependency-card">
-      <div class="eyebrow">SAM-WM RENDERER</div>
-      <strong id="dependencyTitle">Loading real-map renderer…</strong>
-      <span id="dependencyDetail">Checking MapLibre and the basemap.</span>
+      <div class="eyebrow">SAM-WM · COOLWORLD</div>
+      <strong id="dependencyTitle">Loading evidence-aware 3D city renderer…</strong>
+      <span id="dependencyDetail">Checking MapLibre, the real basemap, and immutable runtime evidence.</span>
     </div>
   </div>
 
   <header class="topbar">
     <div class="brand-block">
       <div class="brand">SAM-WM · COOLWORLD</div>
-      <div class="subtitle">Evidence-aware world model for real urban cooling decisions</div>
+      <div class="subtitle">Observe real urban heat → forecast +1…+6 h → prioritize future hotspots → measure physical interventions</div>
     </div>
     <div class="top-status">
       <div class="status-cluster">
@@ -32,7 +37,7 @@
       </div>
       <div class="status-cluster">
         <span class="micro-label">FIELD</span>
-        <strong id="sourceStatus">NO REAL FIELD LOADED</strong>
+        <strong id="sourceStatus">LOADING REAL EVIDENCE</strong>
       </div>
       <div class="status-cluster">
         <span class="micro-label">MODEL</span>
@@ -45,24 +50,25 @@
     <section class="world-column">
       <div class="map-stage">
         <div id="singleWorld" class="map-grid one">
-          <div id="mapA" class="map"></div>
+          <div id="mapA" class="map" aria-label="3D San José thermal world"></div>
         </div>
+
         <div id="compareWorld" class="map-grid two hidden">
           <div class="map-wrap">
             <div class="map-label">BASELINE FUTURE · MODEL PREDICTION</div>
             <div id="mapBaseline" class="map"></div>
           </div>
           <div class="map-wrap">
-            <div class="map-label action-label">INTERVENTION FUTURE · MODEL PREDICTION</div>
+            <div class="map-label action-label">SUPPORTED INTERVENTION FUTURE · MODEL PREDICTION</div>
             <div id="mapCandidate" class="map"></div>
           </div>
         </div>
 
-        <div id="modeBanner" class="mode-banner">BASE MAP ONLY · LOAD REAL FORTYGUARD EVIDENCE</div>
+        <div id="modeBanner" class="mode-banner">LOADING RECORDED REAL FORTYGUARD EVIDENCE</div>
 
         <section class="legend-card floating-card">
-          <div class="floating-title">FORTYGUARD TCM FIELD (°C)</div>
-          <div id="legendUnavailable" class="empty-mini">NO REAL FIELD</div>
+          <div class="floating-title">THERMAL FIELD (°C)</div>
+          <div id="legendUnavailable" class="empty-mini">NO FIELD YET</div>
           <div id="legendBody" class="legend-body hidden">
             <div class="legend-gradient"></div>
             <div class="legend-values">
@@ -71,45 +77,49 @@
               <span id="legendLow">—</span>
             </div>
           </div>
-          <div class="truth-note">Thermal colour is a ground overlay. It is not atmospheric height.</div>
+          <div class="truth-note">
+            Colour spans the actual loaded field range for visual contrast; legend values remain true °C. The layer is a ground overlay, not atmospheric height.
+          </div>
         </section>
 
         <section class="layers-card floating-card">
-          <div class="floating-title">LAYER CONTROLS</div>
+          <div class="floating-title">3D VIEW</div>
           <label class="switch-row"><span>Buildings</span><input id="toggleBuildings" type="checkbox" checked /></label>
           <label class="switch-row"><span>Thermal field</span><input id="toggleThermal" type="checkbox" checked /></label>
-          <label class="switch-row"><span>Intervention footprint</span><input id="toggleAction" type="checkbox" checked /></label>
+          <label class="switch-row"><span>Supported action footprint</span><input id="toggleAction" type="checkbox" checked /></label>
           <button id="orbitButton" class="compact-button">Start 3D camera orbit</button>
           <button id="resetCamera" class="compact-button ghost">Reset camera</button>
           <div id="buildingStatus" class="truth-note">3D BUILDINGS: CHECKING REAL HEIGHT DATA</div>
-          <div id="orbitTruth" class="truth-note">Camera motion is visualization only.</div>
+          <div id="orbitTruth" class="truth-note">Camera motion changes visualization only.</div>
         </section>
 
         <div id="hoverCard" class="hover-card hidden"></div>
 
         <div class="timeline">
-          <button id="playButton" class="play-button" aria-label="Play timeline">▶</button>
+          <button id="playButton" class="play-button" aria-label="Play thermal timeline">▶</button>
           <div class="timeline-main">
             <div class="timeline-head">
-              <strong id="timeLabel">NO RECORDED/MODEL TIMELINE</strong>
+              <strong id="timeLabel">LOADING RECORDED/MODEL TIMELINE</strong>
               <span id="frameLabel">0 frames</span>
             </div>
             <input id="timeSlider" type="range" min="0" max="0" value="0" step="0.01" disabled />
-            <div id="timelineTruth" class="timeline-note">Data animation activates only with multiple real recorded frames or model frames.</div>
+            <div id="timelineTruth" class="timeline-note">
+              Exact recorded frames are observations; between-frame animation is visual interpolation; SAM-WM futures are explicitly labelled predictions.
+            </div>
           </div>
         </div>
       </div>
 
-      <section class="analytics-strip">
+      <section id="forecastAnalyticsAnchor" class="analytics-strip">
         <article class="analytics-card">
           <div class="analytics-title">TEMPERATURE DISTRIBUTION</div>
           <div id="histEmpty" class="analytics-empty">WAITING FOR REAL FIELD</div>
           <svg id="histogram" class="chart hidden" viewBox="0 0 320 126" role="img" aria-label="Temperature histogram"></svg>
-          <div id="histCaption" class="analytics-caption">Real observed tiles only.</div>
+          <div id="histCaption" class="analytics-caption">Real observed tiles only until a model forecast is selected.</div>
         </article>
 
         <article class="analytics-card summary-card">
-          <div class="analytics-title">SUMMARY METRICS</div>
+          <div class="analytics-title">CURRENT FIELD</div>
           <div class="summary-grid">
             <span>MEAN</span><strong id="metricMean">—</strong>
             <span>P95</span><strong id="metricP95">—</strong>
@@ -126,7 +136,7 @@
             <div class="uncertainty-row"><span>Forecast</span><strong id="uncDelta">—</strong></div>
             <div class="uncertainty-row"><span>Conformal radius</span><strong id="uncInterval">—</strong></div>
             <div class="support-track"><div id="supportFill" class="support-fill"></div></div>
-            <div class="uncertainty-row"><span>Certification</span><strong id="uncSupport">—</strong></div>
+            <div class="uncertainty-row"><span>Operational replay</span><strong id="uncSupport">—</strong></div>
             <div id="actionabilityBadge" class="actionability-badge">—</div>
           </div>
           <svg
@@ -141,43 +151,72 @@
         <article class="analytics-card">
           <div class="analytics-title">SAM-WM FUTURE TRAJECTORY</div>
           <div id="previewEmpty" class="analytics-empty">LOAD REAL FIELD → RUN FROZEN SAM-WM</div>
-          <svg id="previewChart" class="chart hidden" viewBox="0 0 320 126" role="img" aria-label="Baseline and intervention model trajectories"></svg>
+          <svg id="previewChart" class="chart hidden" viewBox="0 0 320 126" role="img" aria-label="SAM-WM future thermal trajectory"></svg>
           <div id="previewCaption" class="analytics-caption">Frozen SAM-WM baseline prediction; never labelled as observed.</div>
         </article>
       </section>
     </section>
 
-    <aside class="control-column">
-      <section class="card mode-card">
-        <div class="card-title">WORLD MODE</div>
-        <div class="tabs three">
-          <button data-mode="observed" class="tab active">OBSERVED</button>
-          <button id="replayTab" class="tab">REAL REPLAY</button>
-          <button id="predictedTab" data-mode="predicted" class="tab" disabled>PREDICTED FUTURE</button>
+    <aside class="control-column" aria-label="CoolWorld workflow and evidence">
+      <section class="card product-guide">
+        <div class="product-kicker">60-SECOND WORKFLOW</div>
+        <div class="card-title">HOW TO USE COOLWORLD</div>
+        <p class="product-intro">
+          Start from recorded real city heat. Forecast thermal evolution with the exact frozen SAM-WM. Rank persistent future hotspots. Then inspect evidence before any physical intervention is claimed effective.
+        </p>
+        <div class="flow-grid">
+          <button id="guideObserve" class="flow-button">
+            <span class="flow-number">1</span>
+            <strong>OBSERVE</strong>
+            <small>65 real FortyGuard frames</small>
+          </button>
+          <button id="guideForecast" class="flow-button">
+            <span class="flow-number">2</span>
+            <strong>FORECAST</strong>
+            <small>Frozen SAM-WM +1…+6 h</small>
+          </button>
+          <button id="guideHotspots" class="flow-button">
+            <span class="flow-number">3</span>
+            <strong>PRIORITIZE</strong>
+            <small>Future persistent hotspots</small>
+          </button>
+          <button id="guideEvidence" class="flow-button">
+            <span class="flow-number">4</span>
+            <strong>EVIDENCE</strong>
+            <small>Benchmarks + truth boundaries</small>
+          </button>
+        </div>
+        <div class="earth-loop" aria-label="Urban cooling engineering loop">
+          <span>observe</span><span>forecast</span><span>prioritize</span><span>physically intervene</span><span>measure</span>
         </div>
       </section>
 
       <section class="card">
-        <div class="card-title">ACQUIRE REAL FIELD</div>
-        <button id="loadTimeline" class="secondary">Load recorded real timeline</button>
-        <div class="field-grid">
-          <label>Date<input id="date" type="date" /></label>
-          <label>Time<input id="time" type="time" /></label>
+        <div class="card-title">TRUTH + READINESS</div>
+        <div class="truth-stack">
+          <div id="statusRealEvidence" class="truth-pill warn">checking real provider evidence</div>
+          <div id="statusModelBundle" class="truth-pill warn">checking frozen model promotion</div>
+          <div id="statusResearchForecast" class="truth-pill warn">checking research forecast</div>
+          <div id="statusOperational" class="truth-pill warn">checking operational replay</div>
+          <div id="statusCausal" class="truth-pill warn">checking causal action evidence</div>
         </div>
-        <div class="field-grid compact-grid">
-          <label>Grid<select id="granularity"><option value="100">100 m</option><option value="80">80 m</option><option value="60">60 m</option></select></label>
-          <label>AOI points<input id="aoiCount" type="text" value="0" readonly /></label>
-        </div>
-        <div class="button-row">
-          <button id="drawAoi" class="secondary">Draw AOI</button>
-          <button id="clearAoi" class="ghost">Clear</button>
-        </div>
-        <button id="runHeatmap" class="primary">Run FortyGuard heatmap</button>
-        <div class="truth-note">No placeholder temperature is generated. Empty upstream results remain unavailable.</div>
+        <div id="productStatusError" class="product-status-error hidden"></div>
       </section>
 
-      <section class="card measured-card">
-        <div class="card-title">MEASURED FIELD</div>
+      <section class="card mode-card">
+        <div class="card-title">WORLD MODE</div>
+        <div class="tabs three">
+          <button data-mode="observed" class="tab active">OBSERVE</button>
+          <button id="replayTab" class="tab">INTERVENTION EVIDENCE</button>
+          <button id="predictedTab" data-mode="predicted" class="tab" disabled>SAM-WM FORECAST</button>
+        </div>
+        <div class="truth-note">
+          Forecasting and intervention causality are separate. The forecast can be inspected even when operational certification or causal action evidence is not available.
+        </div>
+      </section>
+
+      <section id="measuredCardAnchor" class="card measured-card">
+        <div class="card-title">REAL MEASURED FIELD</div>
         <div class="info-grid">
           <span>Tile range</span><strong id="currentRange">—</strong>
           <span>Source</span><strong id="fieldSource">—</strong>
@@ -188,40 +227,110 @@
         </div>
       </section>
 
-      <section class="card">
-        <div class="card-title">COOLING ACTION</div>
-        <label>Action<select id="actionKind"><option value="shade">Shade</option><option value="tree_canopy">Tree canopy</option><option value="reflective_pavement">Reflective pavement</option></select></label>
-        <label>Coverage <strong id="coverageLabel">40%</strong><input id="coverage" type="range" min="5" max="100" value="40" step="5" /></label>
-        <label>Target hottest tiles<select id="targetFraction"><option value="0.1">10%</option><option value="0.2" selected>20%</option><option value="0.3">30%</option></select></label>
-        <button id="predict" class="primary">Predict cooling future</button>
-        <div class="truth-note">The action footprint is a proposed ground footprint. No invented structure height is rendered.</div>
-      </section>
-
-
-      <section class="card pipeline-card">
-        <div class="card-title">PIPELINE READINESS</div>
-        <div class="pipeline-list">
-          <div class="pipeline-step"><span>1</span><div><strong id="stageEvidence">REAL EVIDENCE</strong><small id="stageEvidenceDetail">Not loaded in this browser session</small></div></div>
-          <div class="pipeline-step"><span>2</span><div><strong id="stageDataset">SEQUENCE DATASET</strong><small id="stageDatasetDetail">Checking local context bundle</small></div></div>
-          <div class="pipeline-step"><span>3</span><div><strong id="stageModel">WORLD MODEL</strong><small id="stageModelDetail">Checking checkpoint</small></div></div>
-          <div class="pipeline-step"><span>4</span><div><strong id="stageCalibration">SUPPORT CALIBRATION</strong><small id="stageCalibrationDetail">Checking calibration artifact</small></div></div>
-          <div class="pipeline-step"><span>5</span><div><strong id="stageOOD">FINAL + OOD VALIDATION</strong><small id="stageOODDetail">Not complete until real evaluations are run</small></div></div>
+      <section id="hotspotCardAnchor" class="card">
+        <div class="product-section-title">
+          <div class="card-title">FUTURE HOTSPOT PLAN</div>
+          <button id="refreshHotspots" class="tiny-action secondary">Refresh</button>
         </div>
-        <div class="truth-note">A green UI is not scientific evidence. A stage becomes ready only when its real artifact exists.</div>
-      </section>
-      <section class="card status-card">
-        <div class="card-title">COUNTERFACTUAL STATUS</div>
-        <div id="predictionStatus" class="big-status">MODEL CHECKING</div>
-        <div id="predictionExplanation" class="status-explanation">The planner remains blocked until a real-data model and support calibration are available.</div>
+        <p class="product-explainer">
+          SAM-WM ranks tiles by predicted future heat and persistence. Red/yellow priority is relative to the forecast field; hover/metrics retain the real °C values. This is non-causal planning support.
+        </p>
+        <div id="hotspotMap" class="hotspot-map empty" aria-label="3D future hotspot priority map"></div>
+        <div id="hotspotStatus" class="hotspot-status">Run the SAM-WM forecast to build a hotspot plan.</div>
+        <div id="hotspotList" class="hotspot-list"></div>
+        <div id="hotspotBoundary" class="hotspot-boundary">
+          Physical cooling effects are not estimated until independent treated/control evidence exists.
+        </div>
       </section>
 
-      <section class="card console-card">
-        <div class="card-title">AGENT CONSOLE</div>
-        <pre id="console"></pre>
+      <section id="evidenceCardAnchor" class="card">
+        <div class="product-section-title">
+          <div class="card-title">RESEARCH + DEPLOYMENT EVIDENCE</div>
+          <button id="refreshEvidence" class="tiny-action secondary">Refresh</button>
+        </div>
+        <div id="evidenceSummary">
+          <div class="product-loading">Loading immutable evidence…</div>
+        </div>
       </section>
+
+      <details class="product-details">
+        <summary>Advanced · recorded evidence / optional live FortyGuard API</summary>
+        <div class="product-details-body">
+          <section class="card">
+            <div class="card-title">REAL FIELD INPUT</div>
+            <button id="loadTimeline" class="secondary">Reload recorded real timeline</button>
+            <div id="liveApiState" class="live-api-state safe-text">RECORDED-EVIDENCE MODE · zero new provider requests.</div>
+            <div class="field-grid">
+              <label>Date<input id="date" type="date" /></label>
+              <label>Time<input id="time" type="time" /></label>
+            </div>
+            <div class="field-grid compact-grid">
+              <label>Grid<select id="granularity"><option value="100">100 m</option><option value="80">80 m</option><option value="60">60 m</option></select></label>
+              <label>AOI points<input id="aoiCount" type="text" value="0" readonly /></label>
+            </div>
+            <div class="button-row">
+              <button id="drawAoi" class="secondary">Draw AOI</button>
+              <button id="clearAoi" class="ghost">Clear</button>
+            </div>
+            <button id="runHeatmap" class="primary">Run FortyGuard heatmap</button>
+            <div class="truth-note">
+              Public-safe default is recorded immutable evidence. Live provider requests require both a server-side key and explicit <code>COOLWORLD_LIVE_API_ENABLED=1</code>; no placeholder field is ever generated.
+            </div>
+          </section>
+        </div>
+      </details>
+
+      <details class="product-details">
+        <summary>Advanced · physical intervention evidence gate</summary>
+        <div class="product-details-body">
+          <section class="card">
+            <div class="card-title">CANDIDATE PHYSICAL ACTION</div>
+            <label>Action<select id="actionKind"><option value="shade">Shade</option><option value="tree_canopy">Tree canopy</option><option value="reflective_pavement">Reflective pavement</option></select></label>
+            <label>Coverage <strong id="coverageLabel">40%</strong><input id="coverage" type="range" min="5" max="100" value="40" step="5" /></label>
+            <label>Target hottest tiles<select id="targetFraction"><option value="0.1">10%</option><option value="0.2" selected>20%</option><option value="0.3">30%</option></select></label>
+            <button id="predict" class="primary">Check supported action effect</button>
+            <div class="truth-note">
+              Candidate footprints can be proposed, but numerical cooling ΔT remains locked until independently supported treated/control action evidence exists.
+            </div>
+          </section>
+        </div>
+      </details>
+
+      <details class="product-details">
+        <summary>Diagnostics · reproducibility pipeline + agent console</summary>
+        <div class="product-details-body">
+          <section class="card pipeline-card">
+            <div class="card-title">PIPELINE READINESS</div>
+            <div class="pipeline-list">
+              <div class="pipeline-step"><span>1</span><div><strong id="stageEvidence">REAL EVIDENCE</strong><small id="stageEvidenceDetail">Checking recorded provider evidence</small></div></div>
+              <div class="pipeline-step"><span>2</span><div><strong id="stageDataset">SEQUENCE DATASET</strong><small id="stageDatasetDetail">Checking real context bundle</small></div></div>
+              <div class="pipeline-step"><span>3</span><div><strong id="stageModel">WORLD MODEL</strong><small id="stageModelDetail">Checking promoted checkpoint</small></div></div>
+              <div class="pipeline-step"><span>4</span><div><strong id="stageCalibration">SUPPORT CALIBRATION</strong><small id="stageCalibrationDetail">Checking calibration artifact</small></div></div>
+              <div class="pipeline-step"><span>5</span><div><strong id="stageOOD">FINAL + OOD VALIDATION</strong><small id="stageOODDetail">Checking immutable evaluation bundle</small></div></div>
+            </div>
+            <div class="truth-note">A green interface is never treated as scientific evidence; each stage requires a real artifact.</div>
+          </section>
+
+          <section class="card status-card">
+            <div class="card-title">ACTION-EFFECT STATUS</div>
+            <div id="predictionStatus" class="big-status">MODEL CHECKING</div>
+            <div id="predictionExplanation" class="status-explanation">Forecast and intervention evidence are checked independently.</div>
+          </section>
+
+          <section class="card console-card">
+            <div class="card-title">AGENT CONSOLE</div>
+            <pre id="console"></pre>
+          </section>
+        </div>
+      </details>
+
+      <div class="product-note">
+        <strong>What CoolWorld does:</strong> convert real thermal observations into short-horizon forecasts and future-hotspot priorities so city teams can decide where to investigate physical cooling. Trees, shade, materials and other physical interventions—not software—perform the actual cooling; their effects must be measured and causally validated.
+      </div>
     </aside>
   </main>
 
   <script src="/static/bootstrap.js?v=0.8.0"></script>
+  <script src="/static/product.js?v=1.0.0"></script>
 </body>
 </html>

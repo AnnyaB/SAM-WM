@@ -26,11 +26,58 @@ def test_ui_readiness_fails_closed_without_deployment_artifacts(monkeypatch, tmp
     assert payload["evidence_policy"] == "real_only_fail_closed"
     assert model["ready"] is False
     assert model["engine_promoted"] is False
+    assert model["model_bundle_promoted"] is False
+    assert model["research_forecast_ready"] is False
+    assert model["operational_certified"] is False
+    assert model["causal_action_ready"] is False
     assert model["status"] == "MODEL_NOT_READY"
 
     counterfactual = client().post("/api/counterfactual", json={})
     assert counterfactual.status_code == 409
     assert counterfactual.json()["detail"] == "MODEL_NOT_READY"
+
+
+def test_research_preview_is_explicitly_nonactionable(monkeypatch):
+    frames = [
+        {
+            "timestamp": "2026-08-27T12:00:00",
+            "grid_signature": "grid-1",
+        }
+    ]
+    expected = {
+        "future_timestamps": ["2026-08-27T13:00:00"],
+        "tile_ids": ["tile-1"],
+        "baseline_temperature_c": [[35.0]],
+        "baseline_interval_low_c": [[31.0]],
+        "baseline_interval_high_c": [[39.0]],
+        "baseline_conformal_radius_c": 4.0,
+        "checkpoint_sha256": "abc",
+        "context_sha256": "context",
+    }
+
+    monkeypatch.setattr(app_module, "_timeline", lambda _: frames)
+    monkeypatch.setattr(
+        app_module,
+        "_deployment_state",
+        lambda _: {
+            "research_preview_ready": True,
+            "forecast_ready": False,
+            "provider_replay_ready": False,
+            "provider_replay_status": "FORTYGUARD_REPLAY_GATE_FAILED",
+        },
+    )
+    monkeypatch.setattr(app_module, "baseline_forecast", lambda *args, **kwargs: expected)
+
+    response = client().post(
+        "/api/forecast-preview",
+        json={"grid_signature": "grid-1"},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["mode"] == "predicted_research_preview"
+    assert payload["actionable"] is False
+    assert payload["operational_forecast_ready"] is False
+    assert payload["prediction"] == expected
 
 
 def test_counterfactual_endpoint_reaches_promoted_engine(monkeypatch):
@@ -69,8 +116,19 @@ def test_counterfactual_endpoint_reaches_promoted_engine(monkeypatch):
     assert payload["prediction"] == expected
 
 
-def test_fortyguard_endpoint_requires_server_side_key(monkeypatch):
+def test_live_provider_api_is_disabled_by_default(monkeypatch):
+    monkeypatch.delenv("COOLWORLD_LIVE_API_ENABLED", raising=False)
+    monkeypatch.setenv("FORTYGUARD_API_KEY", "configured-for-test")
+
+    response = client().post("/api/fortyguard/heatmap", json={})
+    assert response.status_code == 403
+    assert "LIVE_PROVIDER_API_DISABLED" in response.json()["detail"]
+
+
+def test_fortyguard_endpoint_requires_server_side_key_when_enabled(monkeypatch):
+    monkeypatch.setenv("COOLWORLD_LIVE_API_ENABLED", "1")
     monkeypatch.delenv("FORTYGUARD_API_KEY", raising=False)
+
     response = client().post("/api/fortyguard/heatmap", json={})
     assert response.status_code == 503
     assert "FORTYGUARD_API_KEY not configured" in response.json()["detail"]
