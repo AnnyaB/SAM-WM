@@ -1,0 +1,19 @@
+{
+  "candidate_validation_mae_c": {
+    "101": 1.6122231483459473,
+    "17": 1.4049023389816284,
+    "29": 1.4556922912597656,
+    "42": 1.3881007432937622,
+    "73": 1.4202800989151
+  },
+  "checkpoint": "artifacts/research/seed_42/best.pt",
+  "checkpoint_sha256": "2be783f8a3b7f755a72a98949397c67dfec3a66a6400d8b98e1e732e0d8b708f",
+  "heldout_or_ood_used_for_selection": false,
+  "model": "SAM-WM",
+  "pre_freeze_manifest_sha256": "831a526cb48ca38ff2557989f22cbe6d5e7b6ecd5e1f1373cf672ee59452251f",
+  "protocol": "SAM_WM_DEPLOYMENT_SELECTION_V1",
+  "selected_seed": 42,
+  "selected_validation_mae_c": 1.3881007432937622,
+  "selection_rule": "minimum Freiburg validation MAE; tie-break by ascending frozen seed",
+  "source_sha": "763d1439a5f811c827db3bc2bf437aa011310860"
+}

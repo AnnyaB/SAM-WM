@@ -1,0 +1,23 @@
+{
+  "config_sha256": "4b70ecfeb8f5e551ff44035580fc74600ab5d506c2be1b3c6d8a5b1f87302043",
+  "deployment_selection_sha256": "859c4aa383f5caa1ec02a11305e66d9e553ae9fe5230e5fa6d5b262ab1ff7526",
+  "full_checkpoints": {
+    "seed_101": "94850bfb3b3ea96267c9fa2d8c323936ca0fa3950f222d413c1a138d1e140a25",
+    "seed_17": "fb56db915ae0b73f01fe076fae5f214b50e66cbc3b82600fb7fc97c4c3a33eb8",
+    "seed_29": "ee30ed19770b1e1a5cf430c4352b76387a67cbaa5270d581aeb5b83b4f9f3b17",
+    "seed_42": "2be783f8a3b7f755a72a98949397c67dfec3a66a6400d8b98e1e732e0d8b708f",
+    "seed_73": "bb5f55895096d2543c1db1e6eb6370146d20435844f91242ad3fd94e3263a235"
+  },
+  "model": "SAM-WM",
+  "pre_freeze_manifest_sha256": "831a526cb48ca38ff2557989f22cbe6d5e7b6ecd5e1f1373cf672ee59452251f",
+  "protocol": "SAM_WM_FINAL_FREEZE_V1",
+  "rule": "No architecture, objective, preprocessing, QC, split, graph or hyperparameter change is allowed after this manifest for the reported held-out/OOD run.",
+  "seeds": [
+    17,
+    29,
+    42,
+    73,
+    101
+  ],
+  "source_sha": "763d1439a5f811c827db3bc2bf437aa011310860"
+}

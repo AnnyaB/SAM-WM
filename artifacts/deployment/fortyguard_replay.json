@@ -1,0 +1,21 @@
+{
+  "checkpoint_sha256": "2be783f8a3b7f755a72a98949397c67dfec3a66a6400d8b98e1e732e0d8b708f",
+  "claim_boundary": "Provider replay checks operational transfer of the same frozen SAM-WM to recorded FortyGuard TCM fields only. It is not a second model comparison, causal intervention evidence, a third paper OOD benchmark, or planetary-scale validation.",
+  "conformal_coverage": 0.7989969135802469,
+  "conformal_radius_c": 3.211549758911133,
+  "context_hours": 48,
+  "frame_count": 65,
+  "gate_definition": "Operational compatibility requires empirical interval coverage above the frozen minimum and replay MAE no larger than the frozen Freiburg-validation conformal radius.",
+  "grid_signature": "4eeffe3bd1894f1b229ed621abf28c6337e9d37a8d6c183a486bd0cd13ade373",
+  "horizon_hours": 6,
+  "mae_to_radius_ratio": 0.6375476835679913,
+  "maximum_allowed_mae_to_radius_ratio": 1.0,
+  "minimum_required_coverage": 0.8,
+  "model": "SAM-WM",
+  "model_bias_c": -0.4182106907856318,
+  "model_mae_c": 2.0475161094571335,
+  "model_rmse_c": 2.501740591910347,
+  "protocol": "SAM_WM_FORTYGUARD_REPLAY_V2",
+  "status": "FAIL",
+  "window_count": 12
+}

@@ -1,0 +1,9 @@
+{
+  "bundle_fingerprint": "cf8abdf13cec55334391eebd82a217f1d4ea5830864a6a48251ad181992885c6",
+  "calibration_sha256": "78930a63f93d11106c30e38d8694c65de0cbf765a4b6d44d1d8ff57218af51a5",
+  "checkpoint_sha256": "2be783f8a3b7f755a72a98949397c67dfec3a66a6400d8b98e1e732e0d8b708f",
+  "evaluation_sha256": "30011d0976c2021d8d1aae4c5557ceedd8583b2c0587b4aff359a3434a9ee461",
+  "model": "SAM-WM",
+  "protocol": "SAM_WM_DEPLOYMENT_PROMOTION_V1",
+  "selected_seed": 42
+}

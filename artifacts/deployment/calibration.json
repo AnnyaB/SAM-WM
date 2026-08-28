@@ -1,0 +1,7 @@
+{
+  "checkpoint_sha256": "2be783f8a3b7f755a72a98949397c67dfec3a66a6400d8b98e1e732e0d8b708f",
+  "conformal_radius_c": 3.211549758911133,
+  "protocol": "SAM_WM_DEPLOYMENT_CALIBRATION_V1",
+  "selection_sha256": "859c4aa383f5caa1ec02a11305e66d9e553ae9fe5230e5fa6d5b262ab1ff7526",
+  "source": "Freiburg validation split-conformal residuals; frozen before OOD use"
+}

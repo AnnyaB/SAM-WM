@@ -1,0 +1,54 @@
+{
+  "activity_id": "6bef7956-43c7-4cad-8d67-fc4a2bcdb18d",
+  "content_sha256": "55fdee3d92f7e5fe8421e51f57e40864b503491f68280cac348d54027d567848",
+  "request_payload": {
+    "analytic_type": "tcm",
+    "date_time": {
+      "filter_type": 1,
+      "start_date": "2026-08-19",
+      "start_time": "11:00"
+    },
+    "granularity": 100,
+    "polygon_aoi": {
+      "features": [
+        {
+          "geometry": {
+            "coordinates": [
+              [
+                [
+                  -121.8955,
+                  37.3295
+                ],
+                [
+                  -121.8885,
+                  37.3295
+                ],
+                [
+                  -121.8885,
+                  37.3345
+                ],
+                [
+                  -121.8955,
+                  37.3345
+                ],
+                [
+                  -121.8955,
+                  37.3295
+                ]
+              ]
+            ],
+            "type": "Polygon"
+          },
+          "properties": {
+            "name": "SAM-WM San Jose integration AOI"
+          },
+          "type": "Feature"
+        }
+      ],
+      "type": "FeatureCollection"
+    }
+  },
+  "request_sha256": "11813ebabc7c60adbe21ce42f098496300196fb4fd8b79e4f2c2a9575993f6eb",
+  "response_path": "artifacts/fortyguard/responses/55fdee3d92f7e5fe8421e51f57e40864b503491f68280cac348d54027d567848.json",
+  "state": "COMPLETED"
+}

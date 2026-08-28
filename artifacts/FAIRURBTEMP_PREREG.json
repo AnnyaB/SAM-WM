@@ -1,0 +1,117 @@
+{
+  "candidate_metadata": [
+    {
+      "city": "Amsterdam",
+      "edge_count": 63,
+      "eligible": true,
+      "end": "2019-04-23T03:00:00.000000000",
+      "n_nodes": 23,
+      "n_timestamps": 39568,
+      "observed_fraction": 0.9645310659470103,
+      "source": "doi:10.48620/93247",
+      "start": "2014-10-17T12:00:00.000000000"
+    },
+    {
+      "city": "Basel",
+      "eligible": false,
+      "reason": "ValueError: FAIRUrbTemp stations lack a common >=14-day interval"
+    },
+    {
+      "city": "Berlin",
+      "edge_count": 14,
+      "eligible": true,
+      "end": "2023-12-23T00:00:00.000000000",
+      "n_nodes": 6,
+      "n_timestamps": 34849,
+      "observed_fraction": 0.9155738567342917,
+      "source": "doi:10.48620/93247",
+      "start": "2020-01-01T00:00:00.000000000"
+    },
+    {
+      "city": "Bern",
+      "eligible": false,
+      "reason": "ValueError: FAIRUrbTemp common interval has too few sufficiently complete stations"
+    },
+    {
+      "city": "Biel",
+      "edge_count": 105,
+      "eligible": true,
+      "end": "2023-09-04T08:00:00.000000000",
+      "n_nodes": 38,
+      "n_timestamps": 1511,
+      "observed_fraction": 0.9962206973422968,
+      "source": "doi:10.48620/93247",
+      "start": "2023-07-03T10:00:00.000000000"
+    },
+    {
+      "city": "Birmingham",
+      "edge_count": 124,
+      "eligible": true,
+      "end": "2021-03-31T10:00:00.000000000",
+      "n_nodes": 46,
+      "n_timestamps": 7415,
+      "observed_fraction": 0.9929226890263567,
+      "source": "doi:10.48620/93247",
+      "start": "2020-05-26T12:00:00.000000000"
+    },
+    {
+      "city": "Ghent",
+      "edge_count": 31,
+      "eligible": true,
+      "end": "2022-05-03T23:00:00.000000000",
+      "n_nodes": 12,
+      "n_timestamps": 51192,
+      "observed_fraction": 0.9885154581445017,
+      "source": "doi:10.48620/93247",
+      "start": "2016-07-01T00:00:00.000000000"
+    },
+    {
+      "city": "Rennes",
+      "eligible": false,
+      "reason": "ValueError: FAIRUrbTemp stations lack a common >=14-day interval"
+    },
+    {
+      "city": "Turku",
+      "edge_count": 185,
+      "eligible": true,
+      "end": "2021-12-31T21:00:00.000000000",
+      "n_nodes": 67,
+      "n_timestamps": 26304,
+      "observed_fraction": 0.999601672295457,
+      "source": "doi:10.48620/93247",
+      "start": "2018-12-31T22:00:00.000000000"
+    },
+    {
+      "city": "Zurich",
+      "eligible": false,
+      "reason": "ValueError: FAIRUrbTemp stations lack a common >=14-day interval"
+    }
+  ],
+  "checkpoint_sha256": "2be783f8a3b7f755a72a98949397c67dfec3a66a6400d8b98e1e732e0d8b708f",
+  "dataset": "FAIRUrbTemp",
+  "dataset_source": "doi:10.48620/93247",
+  "excluded_domains": {
+    "Freiburg": "SAM-WM development/ID domain",
+    "NoviSad": "already used as independent OOD-1"
+  },
+  "freeze_manifest_sha256": "fcf6e0f349e13fe53f264ecc3780c7cb22c2d451f73f7b0b8498960a7f1d16df",
+  "graph_k": 4,
+  "protocol": "SAM_WM_FAIRURBTEMP_PREREG_V1",
+  "selected_city": "Turku",
+  "selected_city_metadata": {
+    "city": "Turku",
+    "edge_count": 185,
+    "eligible": true,
+    "end": "2021-12-31T21:00:00.000000000",
+    "n_nodes": 67,
+    "n_timestamps": 26304,
+    "observed_fraction": 0.999601672295457,
+    "source": "doi:10.48620/93247",
+    "start": "2018-12-31T22:00:00.000000000"
+  },
+  "selected_seed": 42,
+  "selection_before_fair_model_evaluation": true,
+  "selection_rule": "Among eligible independent FAIRUrbTemp cities, select maximum valid station count; then maximum common hourly timestamps; then alphabetical city.",
+  "selection_used_model_metrics": false,
+  "source_sha": "763d1439a5f811c827db3bc2bf437aa011310860"
+}

@@ -1,0 +1,204 @@
+{
+  "api_calls_made": 0,
+  "completed_records": 65,
+  "invalid_frames": 16,
+  "invalid_reason_counts": {
+    "MAP_DATA_EMPTY": 16
+  },
+  "invalid_records": [
+    {
+      "activity_id": "9648dd99-e3b3-406f-a8d6-d6b16c5f0cc2",
+      "features": 0,
+      "reason": "MAP_DATA_EMPTY",
+      "result_keys": [
+        "map_data",
+        "stats_data"
+      ],
+      "sample_property_keys": [],
+      "timestamp": "2026-08-22T09:00",
+      "valid": false
+    },
+    {
+      "activity_id": "1051c3c1-c701-451c-9bc6-855870b00d23",
+      "features": 0,
+      "reason": "MAP_DATA_EMPTY",
+      "result_keys": [
+        "map_data",
+        "stats_data"
+      ],
+      "sample_property_keys": [],
+      "timestamp": "2026-08-22T12:00",
+      "valid": false
+    },
+    {
+      "activity_id": "64f710b5-5738-422e-adb4-51cecd4f75be",
+      "features": 0,
+      "reason": "MAP_DATA_EMPTY",
+      "result_keys": [
+        "map_data",
+        "stats_data"
+      ],
+      "sample_property_keys": [],
+      "timestamp": "2026-08-22T08:00",
+      "valid": false
+    },
+    {
+      "activity_id": "78579002-0a88-4fc7-91d7-22301d1de9db",
+      "features": 0,
+      "reason": "MAP_DATA_EMPTY",
+      "result_keys": [
+        "map_data",
+        "stats_data"
+      ],
+      "sample_property_keys": [],
+      "timestamp": "2026-08-22T05:00",
+      "valid": false
+    },
+    {
+      "activity_id": "3c05eec0-86b1-4d81-9a17-9cc4cb9129d0",
+      "features": 0,
+      "reason": "MAP_DATA_EMPTY",
+      "result_keys": [
+        "map_data",
+        "stats_data"
+      ],
+      "sample_property_keys": [],
+      "timestamp": "2026-08-22T06:00",
+      "valid": false
+    },
+    {
+      "activity_id": "639d1fa0-b0c0-4c82-bc8a-bf26d7d3f24b",
+      "features": 0,
+      "reason": "MAP_DATA_EMPTY",
+      "result_keys": [
+        "map_data",
+        "stats_data"
+      ],
+      "sample_property_keys": [],
+      "timestamp": "2026-08-22T01:00",
+      "valid": false
+    },
+    {
+      "activity_id": "f2a52c5f-7dcc-46c9-ba2d-fa4432c415bb",
+      "features": 0,
+      "reason": "MAP_DATA_EMPTY",
+      "result_keys": [
+        "map_data",
+        "stats_data"
+      ],
+      "sample_property_keys": [],
+      "timestamp": "2026-08-22T03:00",
+      "valid": false
+    },
+    {
+      "activity_id": "5aee612b-bec9-48d4-b583-aa1fb3282d35",
+      "features": 0,
+      "reason": "MAP_DATA_EMPTY",
+      "result_keys": [
+        "map_data",
+        "stats_data"
+      ],
+      "sample_property_keys": [],
+      "timestamp": "2026-08-22T15:00",
+      "valid": false
+    },
+    {
+      "activity_id": "c662d1dc-db29-4021-88d6-cab17c988d95",
+      "features": 0,
+      "reason": "MAP_DATA_EMPTY",
+      "result_keys": [
+        "map_data",
+        "stats_data"
+      ],
+      "sample_property_keys": [],
+      "timestamp": "2026-08-22T11:00",
+      "valid": false
+    },
+    {
+      "activity_id": "c9d51f21-3d38-43c8-9793-7a9942f39d18",
+      "features": 0,
+      "reason": "MAP_DATA_EMPTY",
+      "result_keys": [
+        "map_data",
+        "stats_data"
+      ],
+      "sample_property_keys": [],
+      "timestamp": "2026-08-22T02:00",
+      "valid": false
+    },
+    {
+      "activity_id": "a2be242a-ae5c-4693-8e8e-98d27dbc3f58",
+      "features": 0,
+      "reason": "MAP_DATA_EMPTY",
+      "result_keys": [
+        "map_data",
+        "stats_data"
+      ],
+      "sample_property_keys": [],
+      "timestamp": "2026-08-22T16:00",
+      "valid": false
+    },
+    {
+      "activity_id": "caf5f4d9-09ad-4d06-a28d-5e9b2cfc0063",
+      "features": 0,
+      "reason": "MAP_DATA_EMPTY",
+      "result_keys": [
+        "map_data",
+        "stats_data"
+      ],
+      "sample_property_keys": [],
+      "timestamp": "2026-08-22T10:00",
+      "valid": false
+    },
+    {
+      "activity_id": "e271cc3d-9276-45de-b5d1-5edc387f61ba",
+      "features": 0,
+      "reason": "MAP_DATA_EMPTY",
+      "result_keys": [
+        "map_data",
+        "stats_data"
+      ],
+      "sample_property_keys": [],
+      "timestamp": "2026-08-22T14:00",
+      "valid": false
+    },
+    {
+      "activity_id": "6704c981-275c-40c7-9add-a12d6356eb26",
+      "features": 0,
+      "reason": "MAP_DATA_EMPTY",
+      "result_keys": [
+        "map_data",
+        "stats_data"
+      ],
+      "sample_property_keys": [],
+      "timestamp": "2026-08-22T07:00",
+      "valid": false
+    },
+    {
+      "activity_id": "a146841b-cea7-4127-815f-24fffeba40ad",
+      "features": 0,
+      "reason": "MAP_DATA_EMPTY",
+      "result_keys": [
+        "map_data",
+        "stats_data"
+      ],
+      "sample_property_keys": [],
+      "timestamp": "2026-08-22T13:00",
+      "valid": false
+    },
+    {
+      "activity_id": "a2509fcd-c1d8-46b3-8507-a8a6f6cb3ea1",
+      "features": 0,
+      "reason": "MAP_DATA_EMPTY",
+      "result_keys": [
+        "map_data",
+        "stats_data"
+      ],
+      "sample_property_keys": [],
+      "timestamp": "2026-08-22T04:00",
+      "valid": false
+    }
+  ],
+  "protocol": "SAM_WM_FORTYGUARD_INVALID_FRAME_AUDIT_V1",
+  "valid_frames": 49
+}

@@ -1,0 +1,19 @@
+{
+  "data": {
+    "activity_id": "caf5f4d9-09ad-4d06-a28d-5e9b2cfc0063",
+    "result": {
+      "map_data": {
+        "features": [],
+        "type": "FeatureCollection"
+      },
+      "stats_data": {
+        "activity_id": "caf5f4d9-09ad-4d06-a28d-5e9b2cfc0063",
+        "n_cells": 0
+      }
+    },
+    "status": "Completed"
+  },
+  "error": false,
+  "message": "Completed",
+  "status_code": 200
+}

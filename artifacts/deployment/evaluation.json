@@ -1,0 +1,13 @@
+{
+  "checkpoint_sha256": "2be783f8a3b7f755a72a98949397c67dfec3a66a6400d8b98e1e732e0d8b708f",
+  "claim_boundary": "These artifacts establish the frozen SAM-WM benchmark evidence only; they do not establish a causal intervention effect or universal deployment safety.",
+  "freeze_manifest_sha256": "fcf6e0f349e13fe53f264ecc3780c7cb22c2d451f73f7b0b8498960a7f1d16df",
+  "protocol": "SAM_WM_DEPLOYMENT_EVIDENCE_V1",
+  "required_evaluations": {
+    "fairurbtemp_heldout": "415db21826aa5a013352fb1a2e460bff1140a008fb217b935836065a88e38c13",
+    "freiburg_heldout": "02f60cef5d2bcad1bc24292eff400e9f4a6e8f86cf17cb5b8fa3f5ba5c1401bb",
+    "novisad_heldout": "70cfe83784dec7db95ae5e1bb7d40fe26ce0b0e37c85cc7edd9f145a7eec28ac"
+  },
+  "selection_sha256": "859c4aa383f5caa1ec02a11305e66d9e553ae9fe5230e5fa6d5b262ab1ff7526",
+  "source_sha": "763d1439a5f811c827db3bc2bf437aa011310860"
+}
