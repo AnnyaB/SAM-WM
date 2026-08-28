@@ -50,11 +50,13 @@ jobs:
           set -euo pipefail
           grep -F '/static/bootstrap.js?v=0.8.1' static/index.html
           grep -F '/static/city-model.js?v=1.0.1' static/bootstrap.js
+          grep -F '/static/dashboard-viz.css?v=1.0.0' static/bootstrap.js
           python - <<'PY'
           from pathlib import Path
 
           city = Path('static/city-model.js').read_text(encoding='utf-8')
           boot = Path('static/bootstrap.js').read_text(encoding='utf-8')
+          dash = Path('static/dashboard-viz.css').read_text(encoding='utf-8')
 
           # Regression guard: observing timelineTruth while writing to it creates
           # a MutationObserver feedback loop that can starve Safari's event loop
@@ -68,7 +70,13 @@ jobs:
           assert hide in boot
           assert city_load in boot
           assert boot.index(hide) < boot.index(city_load)
-          print('Safari startup regression contract passed')
+
+          # Compact analytics polish is presentation-only and must remain scoped
+          # to the dashboard strip rather than altering model/runtime semantics.
+          assert 'CoolWorld compact scientific dashboard polish' in dash
+          assert '.analytics-strip' in dash
+          assert '.world-column' in dash
+          print('Safari startup + compact dashboard contract passed')
           PY
 
   runtime-contract:
@@ -125,10 +133,12 @@ jobs:
           curl -fsS 'http://127.0.0.1:7860/api/evidence/timeline?limit=1' > /tmp/timeline.json
           curl -fsS http://127.0.0.1:7860/static/interpretability.js > /tmp/interpretability.js
           curl -fsS http://127.0.0.1:7860/static/city-model.js > /tmp/city-model.js
+          curl -fsS http://127.0.0.1:7860/static/dashboard-viz.css > /tmp/dashboard-viz.css
           grep -F 'START HERE · GUIDED DEMO' /tmp/interpretability.js
           grep -F 'How to read this coloured mask' /tmp/interpretability.js
           grep -F 'HOW THIS CITY FORECAST IS BUILT' /tmp/city-model.js
           grep -F 'PLAYBACK · Press ▶ or drag the slider' /tmp/city-model.js
+          grep -F 'CoolWorld compact scientific dashboard polish' /tmp/dashboard-viz.css
           python - <<'PY'
           import json
           from pathlib import Path
