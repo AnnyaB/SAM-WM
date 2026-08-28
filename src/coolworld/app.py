@@ -19,6 +19,7 @@ from .deployment import (
 )
 from .experiment import load_checkpoint
 from .fortyguard import FortyGuardClient
+from .product_api import env_flag, router as product_router
 from .provider import recorded_heatmap_frames, validate_provider_replay
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -39,11 +40,12 @@ CANDRA_ACTIONS = Path(
 
 app = FastAPI(
     title="SAM-WM · CoolWorld",
-    version="1.1.0",
+    version="1.2.0",
     description="Evidence-bounded urban thermal world-model interface",
 )
 if STATIC.exists():
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
+app.include_router(product_router)
 
 
 def _result(payload: dict[str, Any]) -> dict[str, Any]:
@@ -73,7 +75,7 @@ def _has_consecutive_hourly_context(frames: list[dict[str, Any]], count: int) ->
     selected = frames[-count:]
     try:
         stamps = [datetime.fromisoformat(str(frame["timestamp"])) for frame in selected]
-    except (TypeError, ValueError):
+    except (KeyError, TypeError, ValueError):
         return False
     return all(
         (right - left).total_seconds() == 3600
@@ -110,28 +112,38 @@ def _deployment_state(frames: list[dict[str, Any]]) -> dict[str, Any]:
     context_ready = _has_consecutive_hourly_context(frames, context_hours)
     candra_ready = CANDRA_ACTIONS.is_file()
 
-    # Research preview may use the frozen model on real context
-    # even when the separate operational provider-replay gate
-    # has not passed. It is never actionable.
+    # Research preview uses the exact promoted/frozen model on verified real
+    # context even when the independent operational replay gate has not passed.
     research_preview_ready = bundle_ready and context_ready
 
-    # Production/operational forecast semantics remain strict.
+    # Operational semantics remain fail-closed.
     forecast_ready = research_preview_ready and replay_ready
-
     counterfactual_ready = forecast_ready and candra_ready
 
     if counterfactual_ready:
         status = "READY"
     elif not bundle_ready:
         status = bundle_status
-    elif not replay_ready:
-        status = replay_status
     elif not context_ready:
         status = f"REAL_CONTEXT_REQUIRES_{context_hours}_CONSECUTIVE_HOURS"
+    elif not replay_ready:
+        status = "RESEARCH_FORECAST_READY_OPERATIONAL_CERTIFICATION_FAILED"
     else:
-        status = "FORECAST_READY_CANDRA_ACTION_EVIDENCE_REQUIRED"
+        status = "OPERATIONAL_FORECAST_READY_CAUSAL_ACTION_EVIDENCE_REQUIRED"
 
     return {
+        # Clear semantics.
+        "model_bundle_promoted": bundle_ready,
+        "research_forecast_ready": research_preview_ready,
+        "operational_certified": replay_ready,
+        "operational_certification_reason": replay_status,
+        "causal_action_ready": counterfactual_ready,
+        "causal_action_reason": (
+            "CANDRA_ACTION_EVIDENCE_PRESENT"
+            if candra_ready
+            else "INDEPENDENT_TREATED_CONTROL_ACTION_EVIDENCE_REQUIRED"
+        ),
+        # Backward-compatible fields used by the existing renderer/tests.
         "ready": counterfactual_ready,
         "forecast_ready": forecast_ready,
         "research_preview_ready": research_preview_ready,
@@ -146,7 +158,8 @@ def _deployment_state(frames: list[dict[str, Any]]) -> dict[str, Any]:
         "context_bundle_ready": context_ready,
         "context_manifest_ready": bool(frames),
         "candra_effect_ready": candra_ready,
-        "engine_promoted": forecast_ready,
+        # Promotion and operational certification are deliberately distinct.
+        "engine_promoted": bundle_ready,
     }
 
 
@@ -163,6 +176,7 @@ def health() -> dict[str, Any]:
         "status": "ok",
         "evidence_policy": "real_only_fail_closed",
         "fortyguard_key_configured": bool(os.getenv("FORTYGUARD_API_KEY")),
+        "live_provider_api_enabled": env_flag("COOLWORLD_LIVE_API_ENABLED"),
     }
 
 
@@ -173,22 +187,31 @@ def readiness() -> dict[str, Any]:
     return {
         "evidence_policy": "real_only_fail_closed",
         "fortyguard_key_configured": bool(os.getenv("FORTYGUARD_API_KEY")),
+        "live_provider_api_enabled": env_flag("COOLWORLD_LIVE_API_ENABLED"),
         "counterfactual_model": model,
         "recorded_real_frames": len(frames),
         "world_modes": {
-            "observed": "real FortyGuard evidence",
-            "validated_replay": "immutable provider/intervention evidence only",
-            "predicted_future": (
-                "frozen SAM-WM output only after final/OOD bundle + provider replay + real context"
+            "observed": "real recorded/live FortyGuard evidence",
+            "research_forecast": (
+                "frozen SAM-WM output on verified real context; "
+                "not operationally certified"
             ),
-            "counterfactual": "requires independent CANDRA action evidence in addition to forecast",
+            "operational_forecast": (
+                "requires the fixed provider-replay gate in addition "
+                "to the frozen research bundle"
+            ),
+            "counterfactual": (
+                "requires independent treated/control action evidence "
+                "in addition to operational forecast"
+            ),
         },
     }
 
 
 @app.get("/api/evidence/timeline")
 def evidence_timeline(limit: int = 96) -> dict[str, Any]:
-    frames = _timeline(limit)
+    bounded_limit = max(1, min(int(limit), 1000))
+    frames = _timeline(bounded_limit)
     return {
         "mode": "observed",
         "frame_count": len(frames),
@@ -199,6 +222,15 @@ def evidence_timeline(limit: int = 96) -> dict[str, Any]:
 
 @app.post("/api/fortyguard/heatmap")
 def fortyguard_heatmap(payload: dict[str, Any]) -> dict[str, Any]:
+    if not env_flag("COOLWORLD_LIVE_API_ENABLED"):
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "LIVE_PROVIDER_API_DISABLED: recorded immutable evidence is "
+                "the safe public default. Set COOLWORLD_LIVE_API_ENABLED=1 "
+                "explicitly to allow new provider requests."
+            ),
+        )
     if not os.getenv("FORTYGUARD_API_KEY"):
         raise HTTPException(
             status_code=503,
@@ -225,47 +257,32 @@ def fortyguard_heatmap(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 @app.post("/api/forecast-preview")
-def forecast_preview(
-    payload: dict[str, Any],
-) -> dict[str, Any]:
-    """Run the frozen SAM-WM as a non-actionable research preview.
-
-    This route does NOT imply provider replay certification.
-    Production /api/forecast remains fail-closed.
-    """
+def forecast_preview(payload: dict[str, Any]) -> dict[str, Any]:
+    """Run the frozen SAM-WM as a non-actionable research forecast."""
     frames = _timeline(1000)
     state = _deployment_state(frames)
 
     if not state["research_preview_ready"]:
         raise HTTPException(
             status_code=409,
-            detail=("RESEARCH_PREVIEW_REQUIRES_VALID_FROZEN_BUNDLE_AND_REAL_CONTEXT"),
+            detail="RESEARCH_FORECAST_REQUIRES_VALID_FROZEN_BUNDLE_AND_REAL_CONTEXT",
         )
 
     requested_signature = payload.get("grid_signature")
-
     if requested_signature and requested_signature != frames[-1]["grid_signature"]:
         raise HTTPException(
             status_code=409,
-            detail=("REQUEST_GRID_DOES_NOT_MATCH_REAL_CONTEXT"),
+            detail="REQUEST_GRID_DOES_NOT_MATCH_REAL_CONTEXT",
         )
 
     try:
-        prediction = baseline_forecast(
-            CHECKPOINT,
-            CALIBRATION,
-            EVALUATION,
-            frames,
-        )
+        prediction = baseline_forecast(CHECKPOINT, CALIBRATION, EVALUATION, frames)
     except DeploymentError as exc:
-        raise HTTPException(
-            status_code=409,
-            detail=str(exc),
-        ) from exc
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
     return {
         "mode": "predicted_research_preview",
-        "label": ("SAM-WM RESEARCH FORECAST — NOT OPERATIONALLY CERTIFIED — NOT OBSERVED"),
+        "label": "SAM-WM RESEARCH FORECAST — NOT OPERATIONALLY CERTIFIED — NOT OBSERVED",
         "actionable": False,
         "operational_forecast_ready": state["forecast_ready"],
         "provider_replay_ready": state["provider_replay_ready"],
@@ -289,7 +306,7 @@ def forecast(payload: dict[str, Any]) -> dict[str, Any]:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     return {
         "mode": "predicted",
-        "label": "SAM-WM MODEL PREDICTION — NOT OBSERVED",
+        "label": "SAM-WM OPERATIONAL MODEL PREDICTION — NOT OBSERVED",
         "prediction": prediction,
     }
 
