@@ -23,8 +23,11 @@ from .product_api import env_flag
 from .product_api import router as product_router
 from .provider import recorded_heatmap_frames, validate_provider_replay
 
-ROOT = Path(__file__).resolve().parents[2]
-STATIC = ROOT / "static"
+# Runtime assets are repository/container resources, not package resources.
+# In editable local installs cwd is the repository root; in Docker/HF the
+# WORKDIR is /app. An explicit environment variable can override either.
+RUNTIME_ROOT = Path(os.getenv("COOLWORLD_ROOT", Path.cwd())).resolve()
+STATIC = Path(os.getenv("COOLWORLD_STATIC_DIR", RUNTIME_ROOT / "static")).resolve()
 EVIDENCE_DIR = Path(os.getenv("COOLWORLD_EVIDENCE_DIR", "artifacts/fortyguard"))
 CHECKPOINT = Path(os.getenv("SAMWM_CHECKPOINT", "artifacts/deployment/best.pt"))
 CALIBRATION = Path(os.getenv("SAMWM_CALIBRATION", "artifacts/deployment/calibration.json"))

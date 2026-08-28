@@ -1,0 +1,266 @@
+/* Guided interpretability layer for CoolWorld.
+ * This layer changes explanation and workflow only; it never changes model outputs,
+ * evidence, provider requests, thresholds, or causal-effect availability.
+ */
+
+.cw-guide {
+  border-color: rgba(103, 188, 232, 0.65);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(103, 188, 232, 0.16), transparent 42%),
+    linear-gradient(180deg, #0d1d28 0%, #091720 100%);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+}
+
+.cw-guide-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cw-guide-intro {
+  margin: 9px 0 10px;
+  color: #b0c2cd;
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+.cw-guide-actions {
+  display: grid;
+  grid-template-columns: 1.45fr 1fr 1fr;
+  gap: 6px;
+}
+
+.cw-guide-actions button {
+  margin: 0;
+  min-height: 35px;
+  font-size: 8px;
+}
+
+.cw-guide-step {
+  margin-top: 9px;
+  padding: 10px;
+  border: 1px solid #2b4859;
+  border-radius: 8px;
+  background: #07131b;
+}
+
+.cw-guide-step.idle {
+  border-style: dashed;
+}
+
+.cw-guide-step.active {
+  border-color: rgba(103, 188, 232, 0.48);
+  background: linear-gradient(180deg, rgba(16, 43, 59, 0.82), rgba(7, 19, 27, 0.96));
+}
+
+.cw-guide-step.complete {
+  border-color: rgba(80, 208, 139, 0.45);
+  background: rgba(80, 208, 139, 0.07);
+}
+
+.cw-step-count {
+  margin-bottom: 4px;
+  color: #67bce8;
+  font: 7.5px var(--mono);
+  letter-spacing: 0.12em;
+}
+
+.cw-guide-step strong,
+.cw-guide-step span {
+  display: block;
+}
+
+.cw-guide-step strong {
+  color: #eef6fa;
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.cw-guide-step span {
+  margin-top: 5px;
+  color: #94aab7;
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.cw-explain {
+  margin-top: 9px;
+  border: 1px solid #284251;
+  border-radius: 8px;
+  background: #08151e;
+}
+
+.cw-explain > summary {
+  cursor: pointer;
+  padding: 9px 10px;
+  color: #b8cbd5;
+  font: 8.5px var(--mono);
+}
+
+.cw-explain-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 0 10px 10px;
+}
+
+.cw-explain-grid > div {
+  padding: 8px;
+  border: 1px solid #233b49;
+  border-radius: 7px;
+  background: #07131b;
+}
+
+.cw-explain-grid strong,
+.cw-explain-grid span {
+  display: block;
+}
+
+.cw-explain-grid strong {
+  color: #cfe2ec;
+  font-size: 8px;
+}
+
+.cw-explain-grid span {
+  margin-top: 3px;
+  color: #8198a6;
+  font-size: 7.5px;
+  line-height: 1.45;
+}
+
+.cw-boundary {
+  margin: 0 10px 10px;
+  padding: 8px;
+  border-left: 2px solid #e4a64d;
+  background: rgba(228, 166, 77, 0.06);
+  color: #bda87c;
+  font-size: 7.5px;
+  line-height: 1.45;
+}
+
+.cw-glossary dl {
+  display: grid;
+  grid-template-columns: 105px 1fr;
+  gap: 6px 9px;
+  padding: 0 10px 10px;
+  margin: 0;
+}
+
+.cw-glossary dt {
+  color: #b8d5e4;
+  font: 7.5px var(--mono);
+}
+
+.cw-glossary dd {
+  margin: 0;
+  color: #849aa8;
+  font-size: 7.5px;
+  line-height: 1.45;
+}
+
+.cw-color-meaning {
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid rgba(103, 188, 232, 0.28);
+  border-radius: 7px;
+  background: rgba(7, 19, 27, 0.9);
+}
+
+.cw-color-meaning strong,
+.cw-color-meaning span {
+  display: block;
+}
+
+.cw-color-meaning strong {
+  color: #cfe2ec;
+  font: 8px var(--mono);
+}
+
+.cw-color-meaning span {
+  margin-top: 4px;
+  color: #899eaa;
+  font-size: 7px;
+  line-height: 1.45;
+}
+
+.cw-color-warning {
+  color: #d3b36e !important;
+}
+
+.cw-real-world-loop {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid rgba(80, 208, 139, 0.3);
+  border-radius: 8px;
+  background: rgba(80, 208, 139, 0.05);
+}
+
+.cw-real-world-loop > strong {
+  display: block;
+  color: #bfe6ce;
+  font-size: 8.5px;
+}
+
+.cw-real-world-loop ol {
+  margin: 7px 0 0 17px;
+  padding: 0;
+  color: #8fa7a0;
+  font-size: 7.5px;
+  line-height: 1.5;
+}
+
+.cw-real-world-loop li + li {
+  margin-top: 3px;
+}
+
+.cw-why-hotspot {
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid #213845;
+  color: #79909d;
+  font-size: 7.3px;
+  line-height: 1.45;
+}
+
+.cw-why-hotspot strong {
+  color: #c6d7df;
+  font-size: 7.5px;
+}
+
+.cw-replay-explainer {
+  margin-top: 2px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(240, 189, 93, 0.16);
+  color: #c6b37d !important;
+  line-height: 1.45;
+}
+
+/* Remove the confusing primary intervention-replay tab. The evidence gate remains
+ * available in the advanced intervention section and evidence panel.
+ */
+.mode-card .tabs.three {
+  grid-template-columns: 1fr 1fr;
+}
+
+.mode-card #replayTab[hidden] {
+  display: none !important;
+}
+
+/* Keep the original four quick workflow buttons, but visually subordinate them
+ * to the guided start/next sequence.
+ */
+.product-guide {
+  opacity: 0.92;
+}
+
+@media (max-width: 1180px) {
+  .cw-guide-actions,
+  .cw-explain-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cw-glossary dl {
+    grid-template-columns: 1fr;
+  }
+}

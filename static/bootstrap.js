@@ -62,13 +62,19 @@
     attempt();
   });
 
-  const loadApp = () => new Promise((resolve, reject) => {
+  const loadLocalScript = (src, label) => new Promise((resolve, reject) => {
     const script = document.createElement('script');
-    script.src = '/static/app.js?v=0.8.0';
+    script.src = src;
     script.onload = resolve;
-    script.onerror = () => reject(new Error('Local app.js could not be loaded'));
+    script.onerror = () => reject(new Error(`${label} could not be loaded`));
     document.body.appendChild(script);
   });
+
+  const loadApp = () => loadLocalScript('/static/app.js?v=0.8.0', 'Local app.js');
+  const loadInterpretability = () => loadLocalScript(
+    '/static/interpretability.js?v=1.0.0',
+    'Guided interpretability layer',
+  );
 
   (async () => {
     try {
@@ -83,8 +89,9 @@
           'https://cdn.jsdelivr.net/npm/maplibre-gl@5.23.0/dist/maplibre-gl.js',
         ], 'maplibregl'),
       ]);
-      setStatus('Renderer loaded', 'Starting the real-map application.');
+      setStatus('Renderer loaded', 'Starting the real-map application and guided workflow.');
       await loadApp();
+      await loadInterpretability();
       window.setTimeout(() => overlay.classList.add('hidden'), 250);
     } catch (error) {
       setStatus(
