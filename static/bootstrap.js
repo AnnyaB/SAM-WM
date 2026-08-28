@@ -72,13 +72,13 @@
 
   const loadApp = () => loadLocalScript('/static/app.js?v=0.8.0', 'Local app.js');
   const loadInterpretability = () => loadLocalScript(
-    '/static/interpretability.js?v=1.0.0',
-    'Guided interpretability layer',
+    '/static/interpretability.js?v=1.1.0',
+    'CoolWorld product experience',
   );
 
   (async () => {
     try {
-      setStatus('Loading real-map renderer…', 'Loading MapLibre GL JS.');
+      setStatus('Loading CoolWorld…', 'Preparing the 3D city map and SAM-WM interface.');
       await Promise.all([
         loadStylesheet([
           'https://unpkg.com/maplibre-gl@5.23.0/dist/maplibre-gl.css',
@@ -89,14 +89,14 @@
           'https://cdn.jsdelivr.net/npm/maplibre-gl@5.23.0/dist/maplibre-gl.js',
         ], 'maplibregl'),
       ]);
-      setStatus('Renderer loaded', 'Starting the real-map application and guided workflow.');
+      setStatus('City view ready', 'Starting the SAM-WM forecast experience.');
       await loadApp();
       await loadInterpretability();
       window.setTimeout(() => overlay.classList.add('hidden'), 250);
     } catch (error) {
       setStatus(
-        'RENDERER DEPENDENCY UNAVAILABLE',
-        `${error.message}. The dashboard will not fabricate a map. Check internet/content blockers and reload.`,
+        'MAP RENDERER UNAVAILABLE',
+        `${error.message}. Check your internet connection or content blocker and reload.`,
         true,
       );
     }
