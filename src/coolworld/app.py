@@ -19,7 +19,8 @@ from .deployment import (
 )
 from .experiment import load_checkpoint
 from .fortyguard import FortyGuardClient
-from .product_api import env_flag, router as product_router
+from .product_api import env_flag
+from .product_api import router as product_router
 from .provider import recorded_heatmap_frames, validate_provider_replay
 
 ROOT = Path(__file__).resolve().parents[2]
