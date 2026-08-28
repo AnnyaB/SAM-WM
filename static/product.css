@@ -1,0 +1,565 @@
+/* CoolWorld product layer
+ * Adds a judge/user-first workflow without weakening the research truth contract.
+ * The base renderer remains in styles.css; this file only composes product UX.
+ */
+
+.product-guide {
+  border-color: rgba(102, 183, 232, 0.55);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(102, 183, 232, 0.12), transparent 42%),
+    linear-gradient(180deg, #0c1b26 0%, #0a1721 100%);
+}
+
+.product-kicker {
+  margin-bottom: 6px;
+  color: #67bce8;
+  font: 9px var(--mono);
+  letter-spacing: 0.13em;
+}
+
+.product-intro {
+  margin: 0 0 11px;
+  color: #a7bac6;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.flow-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.flow-button {
+  position: relative;
+  min-height: 58px;
+  margin: 0;
+  padding: 9px 9px 9px 38px;
+  border-color: #355b72;
+  background: rgba(8, 24, 34, 0.9);
+  text-align: left;
+}
+
+.flow-button:hover {
+  border-color: #68bee9;
+  background: #102b3b;
+}
+
+.flow-number {
+  position: absolute;
+  left: 9px;
+  top: 10px;
+  width: 21px;
+  height: 21px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #4f8fb5;
+  border-radius: 999px;
+  color: #9fdcff;
+  font: 9px var(--mono);
+}
+
+.flow-button strong {
+  display: block;
+  margin-bottom: 3px;
+  color: #eef6fa;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+
+.flow-button small {
+  display: block;
+  color: #829aa9;
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+.truth-stack {
+  display: grid;
+  gap: 6px;
+}
+
+.truth-pill {
+  display: grid;
+  grid-template-columns: 9px 1fr;
+  gap: 8px;
+  align-items: center;
+  min-height: 34px;
+  padding: 7px 9px;
+  border: 1px solid #28404f;
+  border-radius: 8px;
+  background: #08151e;
+  color: #9db0bc;
+  font: 9px/1.35 var(--mono);
+}
+
+.truth-pill::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #718897;
+  box-shadow: 0 0 0 3px rgba(113, 136, 151, 0.1);
+}
+
+.truth-pill.ok {
+  border-color: rgba(80, 208, 139, 0.32);
+  color: #b5dfc5;
+}
+
+.truth-pill.ok::before {
+  background: #50d08b;
+  box-shadow: 0 0 0 3px rgba(80, 208, 139, 0.12);
+}
+
+.truth-pill.warn {
+  border-color: rgba(240, 189, 93, 0.28);
+  color: #d5c08e;
+}
+
+.truth-pill.warn::before {
+  background: #f0bd5d;
+  box-shadow: 0 0 0 3px rgba(240, 189, 93, 0.1);
+}
+
+.product-status-error,
+.product-error {
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid rgba(239, 111, 108, 0.42);
+  border-radius: 7px;
+  background: rgba(239, 111, 108, 0.08);
+  color: #f2a09d;
+  font: 9px/1.45 var(--mono);
+}
+
+.product-loading {
+  padding: 12px;
+  color: #8098a7;
+  font: 9px/1.45 var(--mono);
+  text-align: center;
+}
+
+.live-api-state {
+  margin: 8px 0 2px;
+  padding: 8px;
+  border-radius: 7px;
+  font: 8px/1.45 var(--mono);
+}
+
+.safe-text {
+  border: 1px solid rgba(80, 208, 139, 0.32);
+  background: rgba(80, 208, 139, 0.07);
+  color: #83dba6;
+}
+
+.warn-text {
+  border: 1px solid rgba(240, 189, 93, 0.34);
+  background: rgba(240, 189, 93, 0.07);
+  color: #edc875;
+}
+
+.product-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.product-section-title .card-title {
+  margin: 0;
+}
+
+.tiny-action {
+  width: auto;
+  min-width: 76px;
+  margin: 0;
+  padding: 6px 8px;
+  font-size: 8px;
+}
+
+.product-explainer {
+  margin: 0 0 10px;
+  color: #8fa5b3;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.hotspot-map {
+  position: relative;
+  width: 100%;
+  height: 210px;
+  margin: 8px 0 10px;
+  overflow: hidden;
+  border: 1px solid #294454;
+  border-radius: 9px;
+  background:
+    radial-gradient(circle at 50% 40%, #122a39 0%, #071019 65%);
+}
+
+.hotspot-map::after {
+  content: 'RELATIVE HOTSPOT PRIORITY · hover for true °C';
+  position: absolute;
+  z-index: 4;
+  left: 8px;
+  bottom: 8px;
+  padding: 5px 7px;
+  border: 1px solid rgba(60, 86, 103, 0.8);
+  border-radius: 6px;
+  background: rgba(5, 14, 20, 0.85);
+  color: #9bb1be;
+  font: 7px var(--mono);
+  letter-spacing: 0.05em;
+  pointer-events: none;
+}
+
+.hotspot-map.empty::before {
+  content: 'Run SAM-WM forecast to render future hotspot priority';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  color: #6e8797;
+  font: 9px/1.5 var(--mono);
+  text-align: center;
+}
+
+.hotspot-status {
+  min-height: 18px;
+  margin-bottom: 7px;
+  color: #88a1af;
+  font: 8px/1.4 var(--mono);
+}
+
+.hotspot-list {
+  display: grid;
+  gap: 7px;
+  max-height: 430px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.hotspot-item {
+  padding: 9px;
+  border: 1px solid #263f4f;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #091922 0%, #08141c 100%);
+}
+
+.hotspot-head {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 8px;
+  align-items: center;
+}
+
+.hotspot-head > div:last-child {
+  min-width: 0;
+}
+
+.hotspot-rank {
+  --hotspot-hue: 25;
+  width: 29px;
+  height: 29px;
+  display: grid;
+  place-items: center;
+  border: 1px solid hsl(var(--hotspot-hue) 70% 55% / 0.55);
+  border-radius: 7px;
+  background: hsl(var(--hotspot-hue) 65% 45% / 0.12);
+  color: hsl(var(--hotspot-hue) 78% 72%);
+  font: 9px var(--mono);
+}
+
+.hotspot-head strong {
+  display: block;
+  overflow: hidden;
+  color: #dce8ee;
+  font: 9px var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hotspot-head span:not(.hotspot-rank) {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  color: #718a99;
+  font: 7px var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hotspot-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px 9px;
+  margin-top: 8px;
+}
+
+.hotspot-metrics span {
+  color: #7f96a4;
+  font-size: 8px;
+}
+
+.hotspot-metrics strong {
+  color: #dbe7ed;
+  font: 8px var(--mono);
+}
+
+.hotspot-bar {
+  height: 5px;
+  margin-top: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #172833;
+}
+
+.hotspot-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f6df6e 0%, #e67c41 55%, #b02f2d 100%);
+}
+
+.hotspot-foot,
+.hotspot-boundary {
+  margin-top: 7px;
+  color: #718997;
+  font-size: 7.5px;
+  line-height: 1.45;
+}
+
+.hotspot-boundary {
+  padding: 8px;
+  border: 1px dashed #294252;
+  border-radius: 7px;
+}
+
+.evidence-hero {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.evidence-hero > div {
+  padding: 8px;
+  border: 1px solid #263f4f;
+  border-radius: 7px;
+  background: #08151e;
+}
+
+.evidence-hero span {
+  display: block;
+  color: #718a99;
+  font: 7px var(--mono);
+  letter-spacing: 0.08em;
+}
+
+.evidence-hero strong {
+  display: block;
+  margin-top: 4px;
+  color: #e3edf2;
+  font: 10px var(--mono);
+}
+
+.evidence-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid #1c303c;
+}
+
+.evidence-row strong,
+.evidence-row span {
+  display: block;
+}
+
+.evidence-row strong {
+  color: #cad9e1;
+  font-size: 9px;
+}
+
+.evidence-row > div > span {
+  margin-top: 2px;
+  color: #738c9a;
+  font: 7.5px var(--mono);
+}
+
+.evidence-chip {
+  padding: 5px 6px;
+  border: 1px solid #315167;
+  border-radius: 999px;
+  background: #0a1c27;
+  color: #9fc7dc !important;
+  font: 7px var(--mono) !important;
+  white-space: nowrap;
+}
+
+.replay-gate {
+  display: grid;
+  gap: 4px;
+  margin-top: 7px;
+  padding: 9px;
+  border-radius: 8px;
+  font-size: 8px;
+}
+
+.replay-gate strong {
+  font: 9px var(--mono);
+}
+
+.replay-gate span {
+  color: #9aadb8;
+  font: 7.5px var(--mono);
+}
+
+.replay-gate.pass {
+  border: 1px solid rgba(80, 208, 139, 0.4);
+  background: rgba(80, 208, 139, 0.08);
+  color: #76daa0;
+}
+
+.replay-gate.fail {
+  border: 1px solid rgba(240, 189, 93, 0.4);
+  background: rgba(240, 189, 93, 0.07);
+  color: #efc56e;
+}
+
+.claim-boundary {
+  margin-top: 8px;
+  padding: 8px;
+  border-left: 2px solid #5daedc;
+  background: rgba(93, 174, 220, 0.06);
+  color: #8fa6b4;
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.product-details {
+  margin-bottom: 10px;
+  border: 1px solid #243b49;
+  border-radius: 9px;
+  background: #09151e;
+}
+
+.product-details > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 11px 12px;
+  color: #adbfca;
+  font: 9px var(--mono);
+  letter-spacing: 0.06em;
+}
+
+.product-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.product-details > summary::before {
+  content: '＋';
+  display: inline-block;
+  width: 17px;
+  color: #65b5e4;
+}
+
+.product-details[open] > summary::before {
+  content: '−';
+}
+
+.product-details-body {
+  padding: 0 12px 12px;
+}
+
+.product-details .card {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.product-note {
+  padding: 8px 9px;
+  border: 1px solid #263f4e;
+  border-radius: 7px;
+  background: #08141d;
+  color: #8298a6;
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.earth-loop {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.earth-loop span {
+  position: relative;
+  padding: 6px 5px;
+  border: 1px solid #274251;
+  border-radius: 6px;
+  background: #08151e;
+  color: #9bb0bc;
+  font: 7px/1.35 var(--mono);
+  text-align: center;
+}
+
+.earth-loop span:not(:last-child)::after {
+  content: '→';
+  position: absolute;
+  right: -8px;
+  top: 50%;
+  z-index: 2;
+  transform: translateY(-50%);
+  color: #64b6e5;
+}
+
+@media (max-width: 1180px) {
+  .flow-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hotspot-map {
+    height: 190px;
+  }
+}
+
+@media (max-width: 900px) {
+  .flow-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .hotspot-list {
+    max-height: none;
+  }
+
+  .hotspot-map {
+    height: 300px;
+  }
+}
+
+@media (max-width: 560px) {
+  .flow-grid,
+  .evidence-hero,
+  .hotspot-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .earth-loop {
+    grid-template-columns: 1fr;
+  }
+
+  .earth-loop span:not(:last-child)::after {
+    content: '↓';
+    right: auto;
+    left: 50%;
+    top: calc(100% + 2px);
+    transform: translateX(-50%);
+  }
+}
