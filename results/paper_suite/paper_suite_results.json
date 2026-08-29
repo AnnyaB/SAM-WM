@@ -1,0 +1,36 @@
+{
+  "protocol": "SAM_WM_PAPER_SUITE_V1",
+  "mode": "paper",
+  "seeds": [17, 29, 42, 73, 101],
+  "models": [
+    "samwm",
+    "itransformer",
+    "timemixer",
+    "samwm_no_sigreg",
+    "samwm_no_exchange",
+    "samwm_no_mental_map",
+    "samwm_no_residual",
+    "samwm_no_rh"
+  ],
+  "fairurb_city": null,
+  "summary_files": {
+    "samwm": "summary/samwm.json",
+    "itransformer": "summary/itransformer.json",
+    "timemixer": "summary/timemixer.json",
+    "samwm_no_sigreg": "summary/samwm_no_sigreg.json",
+    "samwm_no_exchange": "summary/samwm_no_exchange.json",
+    "samwm_no_mental_map": "summary/samwm_no_mental_map.json",
+    "samwm_no_residual": "summary/samwm_no_residual.json",
+    "samwm_no_rh": "summary/samwm_no_rh.json"
+  },
+  "raw_files": {
+    "samwm": "raw/samwm.json",
+    "itransformer": "raw/itransformer.json",
+    "timemixer": "raw/timemixer.json",
+    "samwm_no_sigreg": "raw/samwm_no_sigreg.json",
+    "samwm_no_exchange": "raw/samwm_no_exchange.json",
+    "samwm_no_mental_map": "raw/samwm_no_mental_map.json",
+    "samwm_no_residual": "raw/samwm_no_residual.json",
+    "samwm_no_rh": "raw/samwm_no_rh.json"
+  }
+}
