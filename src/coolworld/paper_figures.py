@@ -98,7 +98,11 @@ def _horizon(payload: dict, model: str, domain: str, key: str) -> tuple[np.ndarr
 
 def plot_main_results(payload: dict, out: Path) -> None:
     models = [name for name in ("samwm", "itransformer", "timemixer") if name in payload["models"]]
-    domains = [domain for domain in ("freiburg", "novisad", "turku") if domain in payload["summary"][models[0]]["domains"]]
+    domains = [
+        domain
+        for domain in ("freiburg", "novisad", "turku")
+        if domain in payload["summary"][models[0]]["domains"]
+    ]
     fig, axes = plt.subplots(1, len(domains), figsize=(7.05, 2.20), sharey=True)
     if len(domains) == 1:
         axes = np.asarray([axes])
@@ -129,12 +133,18 @@ def plot_main_results(payload: dict, out: Path) -> None:
 
 def plot_domain_summary(payload: dict, out: Path) -> None:
     models = [name for name in ("samwm", "itransformer", "timemixer") if name in payload["models"]]
-    domains = [domain for domain in ("freiburg", "novisad", "turku") if domain in payload["summary"][models[0]]["domains"]]
+    domains = [
+        domain
+        for domain in ("freiburg", "novisad", "turku")
+        if domain in payload["summary"][models[0]]["domains"]
+    ]
     fig, axes = plt.subplots(1, 2, figsize=(6.55, 2.35))
     width = 0.22
     centers = np.arange(len(domains))
     for offset, model in enumerate(models):
-        means, stds = zip(*[_metric(payload, model, domain, "mae") for domain in domains], strict=True)
+        means, stds = zip(
+            *[_metric(payload, model, domain, "mae") for domain in domains], strict=True
+        )
         pos = centers + (offset - (len(models) - 1) / 2) * width
         axes[0].bar(
             pos,
@@ -166,7 +176,14 @@ def plot_domain_summary(payload: dict, out: Path) -> None:
             label=baseline_display_name(model),
         )
     axes[1].axhline(90.0, color=INK, linestyle="--", linewidth=0.9, alpha=0.8)
-    axes[1].text(len(domains) - 1 + 0.03, 90.15, "90% nominal", ha="right", va="bottom", fontsize=6.8)
+    axes[1].text(
+        len(domains) - 1 + 0.03,
+        90.15,
+        "90% nominal",
+        ha="right",
+        va="bottom",
+        fontsize=6.8,
+    )
     axes[1].set_xticks(centers, [DOMAIN_LABEL[d] for d in domains], rotation=12, ha="right")
     axes[1].set_ylabel("Empirical coverage (%)")
     axes[1].set_title("Frozen source calibration")
@@ -190,7 +207,11 @@ def plot_ablation(payload: dict, out: Path) -> None:
         )
         if name in payload["models"]
     ]
-    domains = [domain for domain in ("freiburg", "novisad", "turku") if domain in payload["summary"][variants[0]]["domains"]]
+    domains = [
+        domain
+        for domain in ("freiburg", "novisad", "turku")
+        if domain in payload["summary"][variants[0]]["domains"]
+    ]
     fig, axes = plt.subplots(1, len(domains), figsize=(7.05, 2.55), sharey=True)
     if len(domains) == 1:
         axes = np.asarray([axes])
@@ -203,9 +224,18 @@ def plot_ablation(payload: dict, out: Path) -> None:
         "− RH",
     ][: len(variants)]
     for idx, (ax, domain) in enumerate(zip(axes, domains, strict=True)):
-        means, stds = zip(*[_metric(payload, model, domain, "mae") for model in variants], strict=True)
+        means, stds = zip(
+            *[_metric(payload, model, domain, "mae") for model in variants], strict=True
+        )
         colors = [MODEL_COLORS[m] for m in variants]
-        ax.bar(np.arange(len(variants)), means, yerr=stds, capsize=2, color=colors, edgecolor="white")
+        ax.bar(
+            np.arange(len(variants)),
+            means,
+            yerr=stds,
+            capsize=2,
+            color=colors,
+            edgecolor="white",
+        )
         ax.set_xticks(np.arange(len(variants)), labels, rotation=55, ha="right")
         ax.set_title(DOMAIN_LABEL[domain])
         _clean(ax)
