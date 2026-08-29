@@ -534,7 +534,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 ("novisad", novisad, (str(novisad.timestamps[48]), str(novisad.timestamps[-1]))),
             ]
             if fair is not None:
-                domains.append(("turku", fair, (str(fair.timestamps[48]), str(fair.timestamps[-1]))))
+                domains.append(
+                    ("turku", fair, (str(fair.timestamps[48]), str(fair.timestamps[-1])))
+                )
             for domain, dataset, split in domains:
                 metrics, trace = evaluate_one(
                     name=name,
