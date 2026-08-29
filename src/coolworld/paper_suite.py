@@ -20,15 +20,15 @@ from .config import load_yaml
 from .experiment import WindowDataset, derive_source_bound, fit_normalizer
 from .freiburg import load_freiburg
 from .paper_models import (
-    PAPER_MODELS,
     BASELINES,
+    PAPER_MODELS,
     batch_transform_for_variant,
     build_baseline,
     build_samwm,
     parameter_count,
     recommended_lambda_sig,
 )
-from .samwm import SIGReg, SAMWMOutput, samwm_loss
+from .samwm import SAMWMOutput, SIGReg, samwm_loss
 
 PAPER_SEEDS = (17, 29, 42, 73, 101)
 DEADLINE_SEEDS = (17, 42, 73)
@@ -410,7 +410,6 @@ def evaluate_one(
                 covered += int((np.abs(err[mask]) <= radius).sum())
                 covered_n += int(mask.sum())
             if trace is None and batch_index == 0:
-                # Publication trace: spatial mean of the first evaluated window.
                 trace = {
                     "target_mean_c": target_c[0].mean(axis=-1).astype(float).tolist(),
                     "prediction_mean_c": pred_c[0].mean(axis=-1).astype(float).tolist(),
