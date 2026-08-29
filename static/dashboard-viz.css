@@ -182,3 +182,46 @@
     row-gap: 4px;
   }
 }
+
+/* Persistent Heat Priority hover popup: MapLibre defaults to a white surface.
+ * Scope the override to this mini-map so no other map or product UI changes. */
+.hotspot-map .maplibregl-popup-content {
+  padding: 9px 11px;
+  border: 1px solid rgba(102, 183, 232, 0.55);
+  border-radius: 7px;
+  background: rgba(7, 20, 29, 0.97);
+  color: #eef6fa;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.38);
+}
+
+.hotspot-map .priority-popup {
+  display: grid;
+  gap: 3px;
+  min-width: 190px;
+}
+
+.hotspot-map .priority-popup strong {
+  color: #f4f8fa;
+  font: 9px/1.35 var(--mono);
+}
+
+.hotspot-map .priority-popup span {
+  color: #b9cbd5;
+  font: 8px/1.4 var(--mono);
+}
+
+.hotspot-map .maplibregl-popup-anchor-top .maplibregl-popup-tip {
+  border-bottom-color: rgba(7, 20, 29, 0.97);
+}
+
+.hotspot-map .maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
+  border-top-color: rgba(7, 20, 29, 0.97);
+}
+
+.hotspot-map .maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: rgba(7, 20, 29, 0.97);
+}
+
+.hotspot-map .maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: rgba(7, 20, 29, 0.97);
+}
