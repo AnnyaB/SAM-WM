@@ -1,7 +1,7 @@
 PYTHON ?= python
-PY_SCRIPTS = train.py eval.py research.py promote.py provider_replay.py candra_fit.py fortyguard_check.py fortyguard_collect.py plot.py summarize.py verify_runtime.py
+PY_SCRIPTS = train.py eval.py research.py paper_suite.py promote.py provider_replay.py candra_fit.py fortyguard_check.py fortyguard_collect.py plot.py summarize.py verify_runtime.py
 
-.PHONY: install install-app test lint format-check verify verify-runtime verify-frontend verify-demo train research serve
+.PHONY: install install-app test lint format-check verify verify-runtime verify-frontend verify-demo train research paper-suite paper-figures serve
 
 install:
 	$(PYTHON) -m pip install -e '.[dev]'
@@ -45,6 +45,12 @@ train:
 
 research:
 	$(PYTHON) research.py --out artifacts/research
+
+paper-suite:
+	$(PYTHON) paper_suite.py --config config/paper.yaml --mode paper --fairurb-root "$(FAIRURB_ROOT)"
+
+paper-figures:
+	$(PYTHON) scripts/plot_results.py
 
 serve:
 	uvicorn coolworld.app:app --reload --host 127.0.0.1 --port 8000
