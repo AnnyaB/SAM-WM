@@ -1,0 +1,33 @@
+# SAM-WM paper-suite protocol.
+# This is deliberately separate from config/train.yaml, which belongs to the frozen v1 evidence.
+data_root: data/freiburg
+graph_k: 4
+context_hours: 48
+horizon_hours: 6
+splits:
+  train: ['2022-09-03T00:00:00', '2023-04-30T23:00:00']
+  val: ['2023-05-01T00:00:00', '2023-06-30T23:00:00']
+  test: ['2023-07-01T00:00:00', '2023-08-31T23:00:00']
+
+# SAM-WM
+hidden_dim: 64
+source_bound_quantile: 0.995
+residual_fraction: 0.20
+lambda_sig: 0.01
+sigreg_projections: 256
+
+# Matched learned baselines. Values are fixed before paper-suite evaluation.
+itransformer_d_model: 96
+itransformer_heads: 4
+itransformer_layers: 3
+timemixer_d_model: 64
+baseline_dropout: 0.10
+
+# Shared optimizer/evaluation protocol.
+batch_size: 64
+epochs: 80
+patience: 10
+lr: 0.0003
+weight_decay: 0.0001
+grad_clip: 1.0
+conformal_alpha: 0.10
