@@ -1,284 +1,249 @@
 # SAM-WM · CoolWorld
-
 ### Sparse Adaptive Mechanism World Model for evidence-bounded urban thermal intelligence
 
-**CoolWorld** is a real-data urban thermal decision-support system built around one research model: **SAM-WM**. It connects immutable FortyGuard thermal evidence to a compact mechanism-structured world model, visualizes short-horizon city temperature evolution in 3D, ranks persistent future hotspots, exposes uncertainty, and **abstains** when operational or causal evidence is insufficient.
+**Krsna · FortyGuard Hackathon'26 · Primary Track 1 — Resilient Cities & Infrastructure · Secondary Track 5 — Model Designing**
 
-> **Truth boundary.** Software does not physically cool a city or the planet. Trees, shade, reflective materials, building retrofits, water systems, and other physical interventions do. CoolWorld helps decide **where and when to investigate intervention**, then requires treated/control evidence before claiming a numerical cooling effect.
+**Abstract.** CoolWorld turns real FortyGuard thermal evidence into short-horizon urban heat forecasts and intervention priorities using **SAM-WM**, a compact 117,705-parameter mechanism-structured world model. SAM-WM represents a city as a sparse physical graph, composes bounded local thermal mechanisms over a recurrent latent state, predicts +1…+6 h temperature fields, exposes calibrated uncertainty, and keeps forecasting separate from causal intervention claims. In a five-seed matched paper suite trained only on Freiburg, SAM-WM reaches **1.4515 ± 0.0149 °C MAE** on Freiburg held-out data and **1.4675 ± 0.0256 °C MAE** on zero-shot Novi Sad. The adapted iTransformer baseline degrades to **4.1367 ± 0.6737 °C** on Novi Sad and the adapted TimeMixer baseline to **2.7799 ± 0.7516 °C**. The result supports SAM-WM's cross-city transfer hypothesis, while ablations show that not every mechanism is equally supported by forecast MAE alone. The public product therefore uses SAM-WM as **decision support**, not as proof of causal cooling.
 
-The public demo deliberately separates four states:
+<p align="center">
+  <b>[ <a href="https://sam-wm-coolworld.onrender.com">Live Demo</a> | <a href="results/paper_suite/paper_suite_results.json">Matched Results</a> | <a href="docs/RESEARCH_POSITIONING.md">Research Audit</a> | <a href="docs/KAGGLE_PAPER_SUITE.md">Reproduce</a> ]</b>
+</p>
 
-1. **Real evidence** — recorded FortyGuard TCM observations.
-2. **Research forecast** — the exact frozen SAM-WM +1…+6 h prediction on verified real context.
-3. **Operational certification** — a separate provider-replay gate. The current frozen run narrowly fails the fixed coverage requirement and remains labelled as such.
-4. **Causal action effect** — unavailable until independent treated/control intervention evidence exists.
+<p align="center">
+  <img src="results/paper_suite/figures/main_horizon_results.svg" width="92%" alt="SAM-WM horizon-wise Freiburg and Novi Sad results">
+</p>
 
-No state is made green by changing a threshold after evaluation.
+> **Truth boundary.** Software does not physically cool a city. Trees, shade, reflective materials, water systems, retrofits, and other physical interventions do. CoolWorld forecasts where heat is likely to persist and helps prioritize where to investigate. Numerical cooling effects remain locked until independent treated/control evidence exists.
 
----
-
-## 60-second product flow
+## What CoolWorld does
 
 ```text
-FORTYGUARD REAL THERMAL EVIDENCE
-65 consecutive recorded frames · one 36-tile San José grid
+REAL FORTYGUARD TEMPERATURE EVIDENCE
+65 recorded hourly frames · 36-tile San José grid
                     │
                     ▼
-              OBSERVE IN 3D
-real buildings + real ground thermal field + provenance
+               OBSERVE IN 3D
+measured thermal field + provenance
                     │
                     ▼
-                 SAM-WM
-48 h real context → sparse mechanism world model → +1…+6 h future
+                  SAM-WM
+48 h context → sparse city graph → routed mechanisms → +1…+6 h rollout
                     │
                     ▼
-          FUTURE HOTSPOT PRIORITY
-forecast heat + persistence + uncertainty
+            PRIORITIZE HOTSPOTS
+future temperature + persistence + uncertainty
                     │
                     ▼
              ENGINEERING REVIEW
-candidate trees / shade / reflective surface / other physical action
+shade / canopy / reflective surface / other physical action
                     │
                     ▼
           MEASURE TREATED VS CONTROL
-FortyGuard / field sensing / independent causal evidence
                     │
                     ▼
              VALIDATE OR ABSTAIN
 ```
 
-For a first-time user, the UI is intentionally ordered as **Observe → Forecast → Prioritize → Evidence**. Developer-only live API, AOI, and causal-action controls are placed under advanced sections.
+The deployed UI follows **Observe → Forecast → Prioritize → Evidence**. It deliberately distinguishes:
 
----
+- **measured evidence** from FortyGuard;
+- **research forecasts** from SAM-WM;
+- **operational certification** from the separate provider-replay gate;
+- **causal cooling effects** from treated/control intervention evidence.
 
-## What SAM-WM is
+## SAM-WM
 
-SAM-WM is a **Sparse Adaptive Mechanism World Model** for multi-step urban thermal prediction. A city is represented as a sparse physical graph rather than a dense all-pairs map. At each forecast step the model composes typed mechanisms:
+SAM-WM is a **Sparse Adaptive Mechanism World Model** for multi-step urban thermal fields. Its implemented hypothesis is that a small world model can transfer more reliably when the latent dynamics are coupled to local structure and bounded physical operators instead of relying only on unconstrained global sequence mixing.
 
-1. **Conservative exchange** — antisymmetric pair flux with a discrete maximum-principle bound.
-2. **Wind transport** — conservative upwind transport when wind is actually available; exactly disabled otherwise.
-3. **Source/sink forcing** — bounded unresolved local forcing.
-4. **Bounded residual** — intentionally limited residual capacity.
-5. **Adaptive mechanism routing** — state-dependent composition of the available mechanisms.
-6. **Recurrent latent dynamics** — multi-step rollout with an explicit latent state.
-7. **Uncertainty / surprise** — prediction support is exposed instead of silently treated as certainty.
+At each rollout step it composes:
 
-Spatial execution is sparse, approximately `O(E)`, with deterministic k-nearest-neighbour graph construction. Missing relative humidity and other unavailable modalities are represented explicitly rather than filled with invented measurements.
+1. **Sparse adaptive mental map** — `O(E)` state-dependent message passing over a deterministic physical kNN graph.
+2. **Conservative exchange** — symmetric learned conductance with antisymmetric pair heat flux; the exchange term sums to zero up to floating-point error.
+3. **Wind transport** — conservative upwind transport when wind exists; exactly zero when wind is unavailable.
+4. **Bounded source/sink forcing** — local unresolved forcing limited by a training-derived one-step bound.
+5. **Bounded residual** — deliberately restricted free residual capacity.
+6. **Adaptive routing** — state-dependent mixture of exchange, transport, source, and residual mechanisms.
+7. **Recurrent latent dynamics** — autoregressive +1…+6 h state rollout.
+8. **Uncertainty and surprise** — predictive scale plus source-validation split-conformal calibration.
+9. **SIGReg** — adapted and attributed to LeWorldModel; SAM-WM does not claim authorship of SIGReg or copy LeWM's pixel architecture.
 
-SAM-WM is the original research hypothesis in this repository. **SIGReg** is attributed to the public LeWorldModel work; this repository does not claim authorship of SIGReg or copy LeWM's pixel architecture.
+The full model is **physics-inspired / mechanism-structured**, not a complete first-principles urban energy-balance simulator. Exchange and transport are conservative operators; source and residual terms can add or remove local forcing, so the full model is not globally energy-conserving.
 
-### Why this is a world-model research problem
+## Matched paper-suite protocol
 
-The model is trained to roll a compact internal state forward and predict future thermal fields over several hours, not merely classify a static image. The research questions are therefore about **state representation, local interaction structure, mechanism composition, uncertainty, cross-city transfer, and reliable rollout under missing modalities**.
+The final matched experiment is machine-readable under [`results/paper_suite/`](results/paper_suite/): `paper_suite_results.json` is the index, `summary.json` contains all aggregate metrics, and `raw/*.json` contains every per-seed evaluation record.
 
-The evidence here supports those concrete claims. It does **not** establish human-child-level general intelligence, AGI/ASI, universal SOTA superiority, causal urban cooling, or planetary-scale validation.
+- **Source city:** Freiburg.
+- **Training:** Freiburg train split only.
+- **Checkpoint selection:** Freiburg validation MAE only.
+- **Calibration:** Freiburg validation residuals only.
+- **ID test:** Freiburg held-out test.
+- **OOD test:** Novi Sad, zero-shot.
+- **Target adaptation:** none.
+- **Target recalibration:** none.
+- **Context / horizon:** 48 h → +1…+6 h.
+- **Seeds:** `17, 29, 42, 73, 101`.
+- **Models:** SAM-WM, iTransformer-adapted, TimeMixer-adapted, and five SAM-WM ablations.
+- **FAIRUrbTemp/Turku:** not rerun in the matched deadline suite because the public FAIRUrbTemp host was unavailable. The earlier frozen v1 SAM-WM-only Turku result remains separate and is not mixed into the matched baseline table.
 
----
+The two baseline implementations are **independent task adapters inspired by** iTransformer and TimeMixer. They are not the original authors' official implementations, so this repository does **not** claim to beat the official papers or universal SOTA.
 
-## Repository architecture
+## Results
 
-```text
-SAM-WM/
-├── README.md
-├── pyproject.toml
-├── Makefile
-├── Dockerfile
-├── .dockerignore
-│
-├── train.py                 # one SAM-WM training run
-├── research.py              # frozen five-seed SAM-WM development suite
-├── eval.py                  # final + zero-shot OOD evaluation
-├── promote.py               # validation-only selection / immutable promotion
-├── provider_replay.py       # operational-transfer gate on real provider evidence
-├── candra_fit.py            # independent causal action-evidence gate
-├── fortyguard_check.py      # bounded provider request
-├── fortyguard_collect.py    # explicit-credit, crash-resumable collection
-├── verify_runtime.py        # offline runtime/evidence integrity audit
-├── summarize.py
-├── plot.py
-│
-├── src/coolworld/
-│   ├── samwm.py             # core SAM-WM invention
-│   ├── graph.py             # sparse city graph
-│   ├── benchmarks.py        # Freiburg / Novi Sad / FAIRUrbTemp
-│   ├── experiment.py        # normalization, training/eval mechanics
-│   ├── research.py          # frozen research suite helpers
-│   ├── promotion.py         # selection/freeze/promotion contracts
-│   ├── provider.py          # canonical provider timeline + replay validation
-│   ├── deployment.py        # frozen real-context inference
-│   ├── product_api.py       # product readiness/evidence/hotspot APIs
-│   ├── candra.py
-│   ├── action_evidence.py
-│   ├── fortyguard.py        # provider client
-│   ├── evidence.py          # hashes / provenance
-│   └── app.py               # FastAPI runtime
-│
-├── static/
-│   ├── index.html           # judge/user-first UI
-│   ├── app.js               # real 3D thermal renderer + SAM-WM forecast
-│   ├── product.js           # guided flow, hotspot plan, evidence panels
-│   ├── interpretability.js  # guided first-time-user explanation layer
-│   ├── city-model.js        # top-bar SAM-WM city-model inspector
-│   ├── styles.css
-│   ├── product.css
-│   ├── interpretability.css
-│   └── city-model.css
-│
-├── artifacts/               # only immutable demo/runtime evidence is tracked
-├── notebooks/
-├── tests/
-└── docs/
+### Freiburg held-out ID
+
+| Model | MAE °C ↓ | RMSE °C ↓ | 90% conformal coverage | Params |
+|---|---:|---:|---:|---:|
+| **SAM-WM** | **1.4515 ± 0.0149** | 2.0483 ± 0.0072 | **90.45% ± 1.13%** | 117,705 |
+| iTransformer-adapted | 1.6560 ± 0.0758 | 2.2879 ± 0.0997 | 87.96% ± 1.39% | 350,598 |
+| TimeMixer-adapted | **1.4424 ± 0.0326** | **2.0023 ± 0.0484** | 89.49% ± 0.62% | 58,527 |
+
+TimeMixer-adapted is slightly better on Freiburg source-domain MAE by **0.0092 °C (~0.64%)**. SAM-WM is not presented as the universal ID winner.
+
+### Novi Sad zero-shot OOD
+
+| Model | MAE °C ↓ | RMSE °C ↓ | 90% conformal coverage |
+|---|---:|---:|---:|
+| **SAM-WM** | **1.4675 ± 0.0256** | **2.1575 ± 0.0331** | **89.59% ± 0.99%** |
+| iTransformer-adapted | 4.1367 ± 0.6737 | 5.1015 ± 0.7979 | 50.71% ± 7.42% |
+| TimeMixer-adapted | 2.7799 ± 0.7516 | 3.4389 ± 0.7675 | 63.73% ± 17.47% |
+
+Under this fixed source-only protocol, SAM-WM has **64.53% lower Novi Sad MAE than iTransformer-adapted** and **47.21% lower Novi Sad MAE than TimeMixer-adapted**. Its Freiburg→Novi Sad MAE increase is only **+0.0159 °C (+1.10%)**, versus **+2.4806 °C (+149.8%)** for iTransformer-adapted and **+1.3375 °C (+92.7%)** for TimeMixer-adapted.
+
+<p align="center">
+  <img src="results/paper_suite/figures/forecast_and_calibration.svg" width="92%" alt="Cross-city accuracy and source-frozen conformal coverage">
+</p>
+
+### What the baseline result means
+
+The evidence supports a **cross-city transfer advantage under this matched protocol**. It does not prove that SAM-WM is globally superior to iTransformer or TimeMixer. The strongest defensible statement is:
+
+> When all models are trained and selected only on Freiburg, SAM-WM preserves its error and calibration much better on zero-shot Novi Sad than the two matched adapted sequence-model baselines.
+
+That is the central empirical result of the new paper suite.
+
+## Ablations: which parts of SAM-WM are actually supported?
+
+| Variant | Freiburg MAE ↓ | Novi Sad MAE ↓ | What the experiment says |
+|---|---:|---:|---|
+| **Full SAM-WM** | 1.4515 | 1.4675 | reference |
+| − SIGReg | **1.3022** | 1.5669 | much better source fit, worse OOD + worse OOD coverage |
+| − exchange | 1.4494 | 1.4715 | essentially tied in forecast MAE |
+| − mental map | 1.4807 | 1.4872 | worse on both ID and OOD |
+| − residual | 1.4572 | 1.5008 | slightly worse ID; clearly worse OOD |
+| − RH | 1.5065 | **1.4434** | RH helps Freiburg, but Novi Sad has no RH; removing it slightly helps the missing-modality target |
+
+<p align="center">
+  <img src="results/paper_suite/figures/samwm_ablations.svg" width="92%" alt="SAM-WM ablation results">
+</p>
+
+The ablations are informative rather than uniformly flattering:
+
+- **SIGReg shows a source-fit / transfer trade-off.** Removing it improves Freiburg MAE by ~10.3%, but worsens Novi Sad MAE by ~6.8% and drops Novi Sad coverage from ~89.6% to ~85.5%. This is consistent with the regularizer sacrificing some source fit for more transferable representation geometry.
+- **Sparse mental-map updates are supported by the matched forecast metrics.** Removing them worsens both Freiburg and Novi Sad.
+- **The bounded residual is supported, especially OOD.** Removing it increases Novi Sad MAE by ~2.27%.
+- **Conservative exchange is not established as an accuracy win by this benchmark.** Removing it is nearly neutral in MAE. Its value is structural—antisymmetric pair exchange and an explicit conservation invariant—rather than a demonstrated large forecast-accuracy gain here.
+- **RH exposes a real missing-modality issue.** RH improves Freiburg, but Novi Sad provides no RH. The no-RH ablation slightly outperforms the full model on Novi Sad. That result is retained, not hidden; future work should make modality dropout/invariance stronger.
+
+## Efficiency
+
+| Model | Trainable params | Freiburg latency / window* | Freiburg MAE |
+|---|---:|---:|---:|
+| SAM-WM | 117,705 | 0.525 ms | 1.4515 |
+| iTransformer-adapted | 350,598 | **0.059 ms** | 1.6560 |
+| TimeMixer-adapted | **58,527** | 0.761 ms | **1.4424** |
+
+`*` Measured by the paper-suite evaluator on the Kaggle Tesla T4 runtime; these are practical implementation measurements, not hardware-independent microbenchmarks.
+
+SAM-WM uses **66.4% fewer parameters than iTransformer-adapted** and is ~31% faster than the TimeMixer adapter in this evaluator, but iTransformer-adapted is much faster in raw GPU latency. The claim is therefore **balanced transfer/structure at compact scale**, not absolute latency leadership.
+
+<p align="center">
+  <img src="results/paper_suite/figures/efficiency.svg" width="92%" alt="Parameter and latency trade-offs">
+</p>
+
+All additional publication figures—including learning dynamics and representative forecast traces—live under [`results/paper_suite/figures/`](results/paper_suite/figures/).
+
+## Real FortyGuard API evidence
+
+FortyGuard is not decorative in this project. The deployed evidence bundle contains **65 compatible consecutive provider frames** on one **36-tile San José grid**. The request below is an actual tracked provider activity; the API key is intentionally absent.
+
+Recorded request: [`artifacts/fortyguard/f5f0fdf137c5dedfef886e8dba32b5038b97f247640328110c67acbff8e096ee.activity.json`](artifacts/fortyguard/f5f0fdf137c5dedfef886e8dba32b5038b97f247640328110c67acbff8e096ee.activity.json)
+
+```json
+{
+  "analytic_type": "tcm",
+  "date_time": {
+    "filter_type": 1,
+    "start_date": "2026-08-21",
+    "start_time": "14:00"
+  },
+  "granularity": 100,
+  "polygon_aoi": {
+    "features": [{
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-121.8955, 37.3295],
+          [-121.8885, 37.3295],
+          [-121.8885, 37.3345],
+          [-121.8955, 37.3345],
+          [-121.8955, 37.3295]
+        ]]
+      },
+      "properties": {"name": "SAM-WM San Jose integration AOI"},
+      "type": "Feature"
+    }],
+    "type": "FeatureCollection"
+  }
+}
 ```
 
-Research/training scratch outputs remain ignored. The hackathon runtime release intentionally tracks the **promoted checkpoint, its immutable manifests, evaluation summary, provider replay record, and recorded provider evidence** so a judge or deployment can reproduce the exact no-login demo without spending new API credits.
+Recorded response: [`artifacts/fortyguard/responses/5ba0d757a5ff2bd010f191fb1a1080a43cf7d408443554e3cb22ef25b1e7eca3.json`](artifacts/fortyguard/responses/5ba0d757a5ff2bd010f191fb1a1080a43cf7d408443554e3cb22ef25b1e7eca3.json)
 
----
-
-## Frozen research protocol
-
-Only **SAM-WM** is trained and evaluated in the benchmark pipeline. The five seeds are repeated executions of the same model family, not competing models:
-
-```text
-17, 29, 42, 73, 101
+```json
+{
+  "data": {
+    "activity_id": "485b7652-5225-4944-a822-cd8189af4d91",
+    "result": {
+      "map_data": {
+        "features": [{
+          "id": "0",
+          "properties": {
+            "average_temperature": 24.3268,
+            "max_temperature": 24.3268,
+            "min_temperature": 24.3268,
+            "tile_id": 0
+          }
+        }]
+      }
+    }
+  }
+}
 ```
 
-The protocol is intentionally ordered:
+The response is stored content-addressably; the activity record carries both request and response hashes. No provider key is committed anywhere in the repository.
 
-1. Train/validate SAM-WM on Freiburg only.
-2. Select deployment seed using **Freiburg validation only**.
-3. Seal source/config/checkpoint hashes.
-4. Open Freiburg final held-out once.
-5. Evaluate Novi Sad zero-shot with no fine-tuning or OOD recalibration.
-6. Select the FAIRUrbTemp city from metadata/coverage only, before model metrics.
-7. Evaluate preregistered Turku zero-shot with no fine-tuning or OOD recalibration.
-8. Promote the already-selected checkpoint.
-9. Run a separate real FortyGuard provider-replay compatibility gate.
-10. Keep causal intervention effects locked unless independent treated/control evidence is supplied.
+## FortyGuard replay: research forecast ≠ operational certification
 
-Selected deployment seed:
+The frozen deployment checkpoint was also replayed on the recorded provider timeline without retraining:
 
-```text
-42
-```
+| Item | Result |
+|---|---:|
+| Context | 48 h |
+| Forecast horizon | 6 h |
+| Provider windows | 12 |
+| MAE | 2.047516 °C |
+| RMSE | 2.501741 °C |
+| Conformal radius | 3.211550 °C |
+| Empirical coverage | **79.899691%** |
+| Fixed minimum coverage | **80.000000%** |
+| Operational certification | **FAIL** |
 
-Exact promoted checkpoint SHA-256:
+The miss is ~**0.1003 percentage points**. The threshold is not lowered after seeing the result. Therefore the product exposes the research forecast but labels the provider replay as **not operationally certified**. This fail-closed behavior is intentional technical evidence, not a hidden failure.
 
-```text
-2be783f8a3b7f755a72a98949397c67dfec3a66a6400d8b98e1e732e0d8b708f
-```
+## Run from scratch
 
-A material architecture, objective, preprocessing, QC, split, graph, or hyperparameter change after the freeze is a **new research version** and requires a new untouched confirmatory run.
-
----
-
-## Real benchmark evidence
-
-All numbers below are read from tracked machine-readable artifacts; they are not UI placeholders.
-
-| Domain | Protocol | Five-seed MAE (°C) | Five-seed RMSE (°C) | Conformal coverage |
-|---|---|---:|---:|---:|
-| Freiburg | final ID held-out | **1.4515 ± 0.0167** | **2.0483 ± 0.0081** | **90.45% ± 1.26%** |
-| Novi Sad | zero-shot OOD-1 | **1.4675 ± 0.0286** | **2.1575 ± 0.0370** | **89.59% ± 1.11%** |
-| Turku / FAIRUrbTemp | zero-shot OOD-2 | **1.5549 ± 0.0425** | **2.1944 ± 0.0574** | **88.55% ± 1.93%** |
-
-The frozen model has **117,705 parameters** in these runs. Horizon error grows with rollout length and is reported explicitly in `artifacts/summary.json` rather than hidden behind a single average.
-
-### FortyGuard operational replay
-
-Real provider evidence contains **65 compatible consecutive hourly frames** on one **36-tile** San José grid. The same frozen SAM-WM was replayed without retraining.
-
-```text
-Provider replay protocol: SAM_WM_FORTYGUARD_REPLAY_V2
-Windows:                  12
-MAE:                      2.047516 °C
-RMSE:                     2.501741 °C
-MAE / conformal radius:   0.637548      (passes ≤ 1.0 criterion)
-Empirical coverage:       79.899691%
-Fixed minimum coverage:   80.000000%
-Operational gate:         FAIL
-```
-
-The coverage miss is about **0.1003 percentage points**. The threshold is **not** lowered after seeing the result. Therefore:
-
-- the frozen SAM-WM **research forecast remains inspectable** on the real context;
-- it is labelled **not operationally certified**;
-- numerical intervention effects remain locked;
-- the result is not presented as causal cooling evidence.
-
-This distinction is exposed programmatically by `/api/product-status` and visually by the UI.
-
----
-
-## CoolWorld 3D interface
-
-### Start-to-finish walkthrough
-
-The large left-hand viewport is the primary product surface. The guided demo keeps the interaction sequence explicit:
-
-1. **Measured city** — start with the recorded FortyGuard thermal field on the real 3D San José basemap.
-2. **Playback** — press `▶` or drag the timeline to inspect the 65 stored hourly provider fields. The control is a time navigator, not a video recorder and not a source of synthetic measurements.
-3. **SAM-WM forecast** — run the forecast and use the same timeline to move through the six predicted city states from `+1 h` to `+6 h`.
-4. **City Model** — click the pulsing **CITY MODEL · SAM-WM** control in the top bar. It opens the model inspector without covering or shrinking the main 3D city during normal use. The inspector shows `48 h history → 36 provider tiles → local sparse graph → routed thermal mechanisms → +1…+6 h rollout` and explains each mechanism in plain language.
-5. **Persistent Heat Priority** — inspect the ranked future-hotspot map and cards. Priority colour is relative within the selected forecast-hotspot set; the true °C remains visible in the metrics/hover state.
-6. **Field plan** — inspect a candidate location, choose a physically feasible intervention, define treated and comparison areas, implement in the real world, then measure the effect.
-7. **Evidence** — benchmark, replay and provenance panels explain how the frozen model was evaluated. Use **Restart** in the guide to return to the measured starting state.
-
-### How to read the lower dashboard
-
-| Panel | What it shows | How to use it |
-|---|---|---|
-| **City Field Distribution** | Histogram of the temperatures across the displayed 36-tile field. The horizontal axis is °C; bar height is the number of tiles in each temperature bin. | Use it to see whether the field is tightly clustered or contains a warmer/cooler tail. It is a distribution of the current selected hour, not a time-series plot. |
-| **Selected Hour** | Mean, P95, maximum, minimum and tile count for the city field currently displayed on the 3D map. | Move the timeline and watch these values change with the selected measured or forecast hour. |
-| **Forecast Range + Validation** | Forecast horizon, the calibrated prediction-band radius, and the recorded field-replay coverage. | The prediction band describes forecast uncertainty. Replay coverage describes how often measured replay values fell inside that band; it is a model-validation quantity, not a FortyGuard API status. |
-| **6-Hour Priority-Zone Outlook** | Mean temperature trajectory of the currently prioritized forecast locations from `+1 h` to `+6 h`. | Use it to see whether the prioritized warm locations are expected to cool, stay elevated, or warm again. It is not the mean of the entire city. |
-| **Persistent Heat Priority** | Tiles ranked by future temperature and by how frequently they remain in the selected warmest fraction across all six forecast hours. | Use it to shortlist sites for engineering inspection. Red/orange/yellow expresses relative priority; read the card/hover °C for the actual temperature. |
-
-### Observe
-
-The app automatically loads the immutable recorded FortyGuard timeline. Users can inspect:
-
-- the real 3D San José basemap/buildings;
-- real provider GeoJSON thermal tiles;
-- exact timestamps, provider activity IDs and content hashes;
-- temperature histogram and summary statistics;
-- all 65 recorded frames through the timeline.
-
-Between-frame animation is labelled **visual interpolation**, not a new measurement.
-
-### Forecast
-
-Selecting **SAM-WM FORECAST** runs the exact frozen checkpoint on the verified real context and renders:
-
-- +1…+6 h thermal fields on the real provider grid;
-- forecast animation on the 3D city map;
-- mean future trajectory;
-- split-conformal uncertainty radius;
-- checkpoint and context provenance;
-- explicit `MODEL PREDICTION — NOT OBSERVED` truth state.
-
-The research forecast endpoint is intentionally separate from operational `/api/forecast`.
-
-### Prioritize future hotspots
-
-`GET /api/hotspots` ranks the forecast grid by future temperature and persistence across the six horizons. The product panel adds a second 3D priority view:
-
-- **yellow → orange → red** means relative priority *within the selected forecast-hotspot set*;
-- hover/cards show the true current and predicted °C;
-- no temperature is altered to make the visualization dramatic;
-- candidate actions are suggestions for engineering review only;
-- action `effect_c` is deliberately `null` until causal evidence exists.
-
-This makes the visual answer useful without confusing **absolute temperature** with **relative intervention priority**.
-
-### Evidence
-
-The interface reads its benchmark and provider-replay values from tracked JSON artifacts. A judge can see exactly why a research forecast is available while operational/causal gates remain closed.
-
----
-
-## Local quick start
-
-Python 3.11 or 3.12 is supported.
+Python 3.11 or 3.12:
 
 ```bash
 python3.11 -m venv .venv
@@ -296,21 +261,9 @@ Open:
 http://127.0.0.1:8000
 ```
 
-The recorded demo uses **zero new provider requests**.
+The default demo uses recorded evidence and makes **zero new FortyGuard requests**.
 
-### Runtime truth audit
-
-```bash
-python verify_runtime.py
-```
-
-The audit verifies the checkpoint hash, promotion manifest, provider timeline continuity/grid identity, replay criteria, and product truth states. It never calls FortyGuard.
-
----
-
-## Docker / Hugging Face Spaces
-
-Build and run locally:
+### Docker
 
 ```bash
 docker build -t sam-wm-coolworld .
@@ -319,140 +272,78 @@ docker run --rm -p 8000:7860 sam-wm-coolworld
 
 Then open `http://127.0.0.1:8000`.
 
-The container:
+## Reproduce the matched paper suite
 
-- runs as a non-root user;
-- includes only the immutable runtime evidence required for the reproducible demo;
-- exposes `/api/health` for health checks;
-- defaults to port `7860`, compatible with a Docker Hugging Face Space;
-- defaults to `COOLWORLD_LIVE_API_ENABLED=0`.
-
-See `docs/HF_SPACE.md` and `docs/PRODUCTION.md`.
-
----
-
-## Optional live FortyGuard mode
-
-The public demo should use recorded evidence by default. A provider key is **never** committed and is never exposed to browser JavaScript.
-
-A new live provider request requires **both** server-side controls:
+The exact fixed protocol is in [`config/paper.yaml`](config/paper.yaml). The deadline artifact was run as:
 
 ```bash
-export FORTYGUARD_API_KEY='...'
-export COOLWORLD_LIVE_API_ENABLED=1
+python paper_suite.py \
+  --config config/paper.yaml \
+  --mode paper \
+  --skip-fairurb \
+  --out artifacts/paper_suite
 ```
 
-Then start the app. Without the explicit live flag, `/api/fortyguard/heatmap` returns `403 LIVE_PROVIDER_API_DISABLED` even if a key exists. This prevents a public UI from accidentally spending provider allocation.
+This runs five seeds for the full model, two matched adapted baselines, and five ablations. Completed checkpoints resume automatically. Figures are generated from machine-readable results; values are not hand-entered into plots.
 
-For batch collection, `fortyguard_collect.py` remains dry-run by default; credit-consuming collection requires its explicit confirmation flag.
+The full Kaggle archive additionally contains the 40 checkpoints and histories. Binary checkpoints are intentionally not committed to this Git repository; the tracked [`results/paper_suite/`](results/paper_suite/) directory contains the complete aggregate summary, every per-seed raw evaluation JSON, manifest, and all six publication-figure families as editable SVGs. The original Kaggle archive retains the vector PDFs, 600-dpi PNGs, and all 40 binary checkpoints.
 
----
+## What does not work yet
 
-## API truth states
+- **Operational provider certification is still closed.** The frozen FortyGuard replay misses the preregistered 80% coverage gate by ~0.1003 percentage points.
+- **No causal cooling-effect estimate is claimed.** There is not yet an independent treated/control intervention trial proving that a suggested physical action caused a measured temperature reduction.
+- **The matched baseline suite currently has two domains, not three.** FAIRUrbTemp/Turku could not be rerun during the deadline window because its public host was unavailable. The earlier frozen v1 SAM-WM-only Turku result is not used to inflate the matched comparison.
+- **The baseline adapters are not official iTransformer/TimeMixer reproductions.** They are fixed independent task adapters inspired by those architectures.
+- **Exchange is structurally justified but not an accuracy win in this ablation.** More targeted tests are needed to establish when its inductive bias helps prediction.
+- **Missing-modality robustness can improve.** The no-RH ablation slightly improves Novi Sad, where RH is unavailable.
+- **The public deployment keeps live provider calls disabled by default.** Live mode requires a server-side key plus an explicit enable flag.
 
-| Endpoint | Meaning | Can claim causal cooling? |
-|---|---|---|
-| `GET /api/product-status` | separated real/model/operational/causal readiness | No |
-| `GET /api/evidence-summary` | immutable benchmark + provider replay summary | No |
-| `GET /api/evidence/timeline` | recorded real provider fields | Observational only |
-| `POST /api/forecast-preview` | frozen SAM-WM research forecast | No |
-| `GET /api/hotspots` | future forecast-hotspot priority | No |
-| `POST /api/forecast` | operational forecast, only after replay gate passes | No |
-| `POST /api/counterfactual` | supported action effect, only after replay + CANDRA evidence | Only within supplied evidence contract |
-| `POST /api/fortyguard/heatmap` | optional live provider request | Observational only |
+## Repository map
 
-The status API intentionally distinguishes:
-
-```json
-{
-  "real_provider_evidence_ready": true,
-  "model_bundle_promoted": true,
-  "research_forecast_ready": true,
-  "operational_certified": false,
-  "causal_action_ready": false
-}
+```text
+SAM-WM/
+├── src/coolworld/samwm.py          # core SAM-WM mechanisms
+├── src/coolworld/paper_models.py   # matched baselines + ablations
+├── src/coolworld/paper_suite.py    # five-seed paper protocol
+├── src/coolworld/paper_figures.py  # publication figures
+├── paper_suite.py                  # benchmark entry point
+├── config/paper.yaml               # fixed matched protocol
+├── results/paper_suite/            # tracked final result JSON + SVG figures
+├── artifacts/                      # frozen runtime/provider evidence
+├── static/                         # 3D CoolWorld interface
+├── tests/                          # unit/runtime contracts
+├── docs/                           # protocol, production, research audit
+├── Dockerfile
+├── Makefile
+└── README.md
 ```
 
-Those values are not contradictory; they represent different scientific and deployment gates.
+## Hackathon scope and reproducibility
 
----
+This repository was created on **18 August 2026**, after the Hackathon'26 kickoff. The submission-specific CoolWorld integration, provider evidence pipeline, deployment, evaluation contracts, and paper-suite additions are tracked in Git history.
 
-## CANDRA action-evidence gate
+The live deployment is designed to be judge-safe:
 
-Forecasting and intervention causality remain separate. `candra_fit.py` requires a genuine source treated/control study and an independent transfer treated/control study before an action can be marked transfer-supported. Ordinary observational forecasts cannot create a non-zero cooling effect.
+- no login required;
+- no browser-exposed provider key;
+- recorded evidence by default;
+- immutable checkpoint/evidence hashes;
+- fail-closed operational and causal gates;
+- `/api/health` for runtime checks;
+- deterministic provider evidence replay where applicable.
 
-The current public runtime therefore **does not** display fabricated values such as “tree canopy cools this tile by X °C.” Instead it identifies forecast-persistent hotspots and proposes action categories for investigation.
+## AI assistance disclosure
 
----
+**OpenAI ChatGPT** was used as a development assistant for code review, debugging, experiment orchestration, scientific-result auditing, and documentation. AI assistance did **not** generate the recorded FortyGuard measurements or fabricate benchmark metrics; reported numbers come from tracked machine-readable artifacts. The deployed CoolWorld product does not depend on a runtime LLM for its thermal forecasts or truth-state logic.
 
-## Reproducibility
+## Attribution
 
-```bash
-make verify
-```
+- **SIGReg:** adapted/attributed to Maes et al., *LeWorldModel: Stable End-to-End Joint-Embedding Predictive Architecture from Pixels* (2026).
+- **iTransformer-adapted:** independent task adapter inspired by Liu et al., *iTransformer: Inverted Transformers Are Effective for Time Series Forecasting*, ICLR 2024 Spotlight. The official implementation is not bundled here.
+- **TimeMixer-adapted:** independent task adapter inspired by Wang et al., *TimeMixer: Decomposable Multiscale Mixing for Time Series Forecasting*, ICLR 2024. The official implementation is not bundled here.
 
-runs compilation, Ruff lint, Ruff format check, and the Python test suite. CI repeats verification on Python 3.11 and 3.12 and also checks browser JavaScript, immutable runtime contracts, and the Docker application smoke path.
-
-Research artifacts are content-addressed or hash-linked wherever possible. The selected seed, freeze manifests, promotion manifest, final/OOD summary, provider activity/content hashes, and replay record are all preserved.
-
----
-
-## Production/scaling notes
-
-The hackathon deployment is intentionally small and deterministic, but the architecture separates concerns so it can evolve:
-
-- model inference is isolated from HTTP/UI logic;
-- provider ingestion is isolated from the model;
-- product readiness/evidence APIs are isolated in `product_api.py`;
-- immutable demo evidence can later move to object storage;
-- the current one-entry process-local forecast cache can later be replaced by Redis or a content-addressed shared cache;
-- live provider operations are feature-gated and server-side only;
-- horizontal workers can share the same immutable model/evidence bundle, while shared mutable state should move to external storage before multi-replica production.
-
-See `docs/PRODUCTION.md`.
-
----
-
-## FortyGuard Hackathon'26
-
-Submission-oriented design follows the supplied hackathon emphasis on **Impact & Relevance, Technical Execution, Innovation, and Communication**. The final package should include a public/no-login live app, repository, and a working demo video no longer than three minutes.
-
-The product story is intentionally practical:
-
-> **CoolWorld turns real urban thermal evidence into short-horizon world-model forecasts and future-hotspot priorities, so city teams can focus physical cooling investigation where heat is predicted to persist, while the software refuses to invent unsupported intervention effects.**
-
-See `docs/DEMO.md` for the short judge walkthrough.
-
----
-
-## Claim policy
-
-### Supported by the current artifacts
-
-- real-data urban temperature forecasting;
-- Freiburg final held-out evaluation;
-- zero-shot cross-city evaluation on Novi Sad and preregistered Turku;
-- +1…+6 h multi-step rollout;
-- explicit missing-modality handling;
-- uncertainty-aware prediction;
-- compact 117,705-parameter model in the frozen runs;
-- real FortyGuard evidence integration;
-- non-causal future-hotspot prioritization;
-- fail-closed operational and causal gates.
-
-### Not supported by the current artifacts
-
-- universal SOTA superiority;
-- human-child-level general intelligence;
-- AGI/ASI;
-- guaranteed or measured cooling from a proposed intervention without treated/control evidence;
-- planetary-scale validation or a claim that software itself “cools Earth”;
-- guaranteed hackathon score or publication acceptance.
-
-See `docs/CLAIMS.md`.
-
----
+SAM-WM's mechanism composition, sparse thermal graph formulation, bounded source/residual design, provider evidence gates, and CoolWorld integration are the contribution tested in this repository.
 
 ## License
 
-MIT. See `LICENSE`.
+MIT — see [`LICENSE`](LICENSE).
