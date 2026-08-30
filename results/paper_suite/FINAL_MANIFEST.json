@@ -11,15 +11,37 @@
     "samwm_no_residual",
     "samwm_no_rh"
   ],
-  "seeds": [17, 29, 42, 73, 101],
+  "seeds": [
+    17,
+    29,
+    42,
+    73,
+    101
+  ],
   "domains": [
     "Freiburg held-out test",
     "Novi Sad zero-shot OOD"
   ],
   "turku_status": "Deferred because FAIRUrbTemp host was unavailable during the deadline run.",
-  "source_results_json": "artifacts/paper_suite/paper_suite_results.json",
-  "tracked_repo_index": "results/paper_suite/paper_suite_results.json",
-  "tracked_summary_dir": "results/paper_suite/summary",
-  "tracked_raw_dir": "results/paper_suite/raw",
-  "tracked_figure_dir": "results/paper_suite/figures"
+  "results_json": "artifacts/paper_suite/paper_suite_results.json",
+  "figures": [
+    "artifacts/paper_suite/figures/efficiency.pdf",
+    "artifacts/paper_suite/figures/efficiency.png",
+    "artifacts/paper_suite/figures/efficiency.svg",
+    "artifacts/paper_suite/figures/forecast_and_calibration.pdf",
+    "artifacts/paper_suite/figures/forecast_and_calibration.png",
+    "artifacts/paper_suite/figures/forecast_and_calibration.svg",
+    "artifacts/paper_suite/figures/forecast_trace.pdf",
+    "artifacts/paper_suite/figures/forecast_trace.png",
+    "artifacts/paper_suite/figures/forecast_trace.svg",
+    "artifacts/paper_suite/figures/learning_curves.pdf",
+    "artifacts/paper_suite/figures/learning_curves.png",
+    "artifacts/paper_suite/figures/learning_curves.svg",
+    "artifacts/paper_suite/figures/main_horizon_results.pdf",
+    "artifacts/paper_suite/figures/main_horizon_results.png",
+    "artifacts/paper_suite/figures/main_horizon_results.svg",
+    "artifacts/paper_suite/figures/samwm_ablations.pdf",
+    "artifacts/paper_suite/figures/samwm_ablations.png",
+    "artifacts/paper_suite/figures/samwm_ablations.svg"
+  ]
 }

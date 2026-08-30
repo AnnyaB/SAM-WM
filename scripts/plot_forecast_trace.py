@@ -85,11 +85,7 @@ def choose_domain(payload: dict[str, Any], models: list[str]) -> str:
 
 
 def render(payload: dict[str, Any], out: Path) -> None:
-    models = [
-        name
-        for name in ("samwm", "itransformer", "timemixer")
-        if name in payload["models"]
-    ]
+    models = [name for name in ("samwm", "itransformer", "timemixer") if name in payload["models"]]
     if not models:
         raise KeyError("No expected forecast models found in final results")
 
