@@ -11,6 +11,12 @@
 
 Official form: https://forms.gle/jLgBzVTG1NhJ3gNe6
 
+## Track-specific requirement that must not be skipped
+
+FortyGuard's final `#help-general` guidance on 30 August adds one requirement beyond the four generic deliverables: **each track has its own demo requirement plus one proof item**, defined in the Participant Handbook. The shared Slack canvas gives the Track 1 examples and judging rubric but does not reproduce that proof-item text. Therefore the Track 1 handbook section must be checked manually before final submission; do not assume the generic checklist alone completes Track 1 compliance.
+
+For SAM-WM, the primary track remains **Track 1 — Resilient Cities & Infrastructure**. The product evidence already foregrounds a Track 1 use case — persistent-hotspot ranking for engineering review — but the final video/form must also satisfy the handbook's exact Track 1 demo/proof wording once confirmed.
+
 ## Judging weights
 
 | Criterion | Weight | SAM-WM evidence to foreground |
@@ -31,10 +37,11 @@ Official form: https://forms.gle/jLgBzVTG1NhJ3gNe6
 
 ## Boilerplate / provenance clarification
 
-FortyGuard allows the official Temperature API Quickstart as pre-existing boilerplate if it is disclosed in the README. **SAM-WM was not cloned from that Quickstart.** The repository was initialized independently after kickoff; the Temperature API integration is implemented by the custom client in `src/coolworld/fortyguard.py` and the bounded collector in `fortyguard_collect.py`. Do not falsely add a Quickstart-boilerplate attribution.
+FortyGuard allows the official Temperature API Quickstart as pre-existing boilerplate if it is disclosed in the README. **SAM-WM was not cloned from that Quickstart.** The repository was created on 18 August 2026 and is not a fork; the Temperature API integration is implemented by the custom client in `src/coolworld/fortyguard.py` and the bounded collector in `fortyguard_collect.py`. Do not falsely add a Quickstart-boilerplate attribution. If any local code was in fact copied from the Quickstart outside Git history, disclose that before submission rather than relying on this repository-level audit.
 
 ## Final pre-submit checks
 
+- [ ] Open the Participant Handbook and confirm the exact **Track 1 demo requirement + proof item**; make both visible in the final demo/video/form.
 - [ ] Open `https://sam-wm-coolworld.onrender.com` in a fresh private/incognito browser: no login, no installation.
 - [ ] Confirm `/api/health` returns `status: ok` and the Observe → Forecast → Prioritize → Evidence workflow renders.
 - [ ] Confirm the app clearly labels the SAM-WM output as a **research forecast** when the fixed operational replay gate has not passed.
