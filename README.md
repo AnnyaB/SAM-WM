@@ -3,9 +3,21 @@
 **FortyGuard Hackathon'26**  
 **Primary track:** Track 5 — Model Designing · **Secondary track:** Track 1 — Resilient Cities & Infrastructure
 
-[**Live Demo**](https://sam-wm-coolworld.onrender.com/)
+<p align="center">
+  <a href="https://sam-wm-coolworld.onrender.com/"><strong>Live Demo</strong></a>
+</p>
 
-[Problem](#problem-and-user) · [Research Gap](#existing-approaches-and-research-gap) · [Method](#proposed-method) · [Architecture](#architecture) · [Results](#experiments-and-results) · [Discussion](#discussion) · [Demo Guide](#demo-guide) · [Run](#run-from-scratch) · [References](#references)
+<p align="center">
+  <a href="#problem-and-user">Problem</a> ·
+  <a href="#existing-approaches-and-research-gap">Research Gap</a> ·
+  <a href="#proposed-method">Method</a> ·
+  <a href="#architecture">Architecture</a> ·
+  <a href="#experiments-and-results">Results</a> ·
+  <a href="#discussion">Discussion</a> ·
+  <a href="#demo-guide">Demo Guide</a> ·
+  <a href="#run-from-scratch">Run</a> ·
+  <a href="#references">References</a>
+</p>
 
 CoolWorld turns real FortyGuard temperature evidence into uncertainty-aware short-horizon urban heat forecasts and persistent-hotspot priorities. Its forecasting engine, **Sparse Adaptive Mechanism World Model (SAM-WM)**, represents an urban thermal field as a sparse physical graph, learns recurrent latent dynamics, and composes bounded thermal mechanisms over six one-hour forecast steps. The final configuration contains **117,705 trainable parameters**.
 
