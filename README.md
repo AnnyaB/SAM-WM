@@ -1,4 +1,4 @@
-# CoolWorld: A World Model for the Heat Ahead
+# CoolWorld: Sparse Adaptive Mechanism World Model for Urban Heat Forecasting
 
 **FortyGuard Hackathon'26**  
 **Primary track:** Track 5 — Model Designing · **Secondary track:** Track 1 — Resilient Cities & Infrastructure
@@ -7,9 +7,7 @@
 
 [Problem](#problem-and-user) · [Research Gap](#existing-approaches-and-research-gap) · [Method](#proposed-method) · [Architecture](#architecture) · [Results](#experiments-and-results) · [Discussion](#discussion) · [Demo Guide](#demo-guide) · [Run](#run-from-scratch) · [References](#references)
 
-CoolWorld turns real FortyGuard temperature evidence into uncertainty-aware short-horizon urban heat forecasts and persistent-hotspot priorities. Its forecasting engine, **SAM-WM**, represents an urban thermal field as a sparse physical graph, learns recurrent latent dynamics, and composes bounded thermal mechanisms over six one-hour forecast steps.
-
-The final configuration contains **117,705 trainable parameters**. The primary competition fit is **Track 5 — Model Designing** because the central contribution is a trained, validated, and packaged microclimate forecasting model. **Track 1 — Resilient Cities & Infrastructure** is the downstream application: persistent predicted hotspots are surfaced for human engineering review rather than converted directly into unsupported intervention claims.
+CoolWorld turns real FortyGuard temperature evidence into uncertainty-aware short-horizon urban heat forecasts and persistent-hotspot priorities. Its forecasting engine, **Sparse Adaptive Mechanism World Model (SAM-WM)**, represents an urban thermal field as a sparse physical graph, learns recurrent latent dynamics, and composes bounded thermal mechanisms over six one-hour forecast steps. The final configuration contains **117,705 trainable parameters**.
 
 ## Problem and user
 
@@ -27,7 +25,7 @@ Learned forecasting spans several regimes. iTransformer and TimeMixer provide st
 
 These systems solve different forecasting problems. Generic time-series architectures do not, by construction, impose SAM-WM's sparse physical graph together with explicitly routed conservative exchange, optional transport, bounded local forcing, and bounded residual dynamics. Global learned weather systems operate at a fundamentally different spatial and deployment scale from a small hyperlocal urban thermal field. Pixel-based world models target visual dynamics rather than irregular temperature observations attached to physical city geometry.
 
-The Proposed SAM-WM therefore studies a narrower question:
+The Proposed **Sparse Adaptive Mechanism World Model** (SAM-WM) therefore studies a narrower question:
 
 > **Can a compact, structured world model forecast a sparse urban thermal field while preserving uncertainty, transfer evidence, and a strict boundary between prediction and causal intervention claims?**
 
@@ -132,7 +130,7 @@ The uncertainty head predicts a Laplace log-scale for each node and horizon. Tra
 
 SIGReg is adapted from LeJEPA/LeWM. The SAM-WM contribution is the sparse continuous-field representation with routed, bounded mechanisms and the evidence-bounded forecast/deployment interface.
 
-### CANDRA: causal-action evidence gate
+### Causal Action Nonparametric Difference-in-Differences with Robust Abstention (CANDRA)
 
 CANDRA is **not** part of SAM-WM training and does not alter the ordinary +1…+6 h forecast. It is a downstream evidence gate used only after a real physical intervention has independent treated/control measurements.
 
@@ -162,7 +160,7 @@ U_h < 0.
 
 `src/coolworld/action_evidence.py` requires this condition at **every requested horizon in both a source study and an independent transfer study** before an action artifact can set `transfer_validated=true`. At runtime, `src/coolworld/deployment.py` additionally checks the requested action, horizon, coverage regime, provenance, interval ordering, and evidence support before any counterfactual action effect can be applied.
 
-The current public deployment intentionally has **no `candra_actions.json` artifact**, because no independent treated/control intervention dataset is present. CoolWorld therefore abstains from numerical cooling claims for shade, trees, reflective surfaces, or other interventions.
+The current public deployment intentionally has **no `candra_actions.json` artifact**, because no independent treated/control intervention dataset is present.
 
 ## Architecture
 
@@ -200,7 +198,7 @@ Freiburg is the only training domain. Checkpoint selection and uncertainty calib
 | Kaggle PyTorch runtime | 2.10.0+cu128 |
 | Paper-suite fits | 8 model/ablation families × 5 seeds = 40 |
 
-The paper-suite configuration is tracked in [`config/paper.yaml`](config/paper.yaml). The Kaggle runtime exposed two Tesla T4 GPUs; no distributed-data-parallel speedup claim is made. Reproducibility is defined by the fixed data splits, seeds, configuration, checkpoints, and machine-readable result artifacts.
+The configuration is tracked in [`config/paper.yaml`](config/paper.yaml). The Kaggle runtime exposed two Tesla T4 GPUs. Reproducibility is defined by the fixed data splits, seeds, configuration, checkpoints, and machine-readable result artifacts.
 
 ### Freiburg held-out and Novi Sad zero-shot transfer
 
@@ -214,7 +212,7 @@ The paper-suite configuration is tracked in [`config/paper.yaml`](config/paper.y
 
 TimeMixer is marginally lower in Freiburg MAE, so the experiment does not support a universal source-domain superiority claim. The principal transfer observation is that SAM-WM changes from 1.4515 °C MAE in Freiburg to 1.4675 °C in Novi Sad, whereas the two comparison systems degrade substantially under the same source-only protocol.
 
-The iTransformer and TimeMixer systems in this repository are task-specific implementations based on the published architectures. They are not presented as reproductions of the authors' official repositories or as official benchmark numbers.
+The iTransformer and TimeMixer systems in this repository are implementations based on the published architectures. They are not presented as reproductions of the authors' official repositories or as official benchmark numbers.
 
 ### Horizon-wise error
 
@@ -249,21 +247,19 @@ The exchange operator is justified here by its structural conservation property,
 
 ![SAM-WM learning curves](results/paper_suite/figures/learning_curves.svg)
 
-Five paper figures are direct SVG exports from the completed Kaggle archive. `forecast_trace.svg` is a layout-only rerender from the exact stored trace arrays to move its legend outside the data region; no target, prediction, seed, split, or metric was changed.
-
 ## Discussion
 
-The source-domain result alone does not establish universal model superiority: TimeMixer obtains a marginally lower Freiburg MAE. The more informative observation is cross-city behavior. SAM-WM changes from **1.4515 °C MAE** on Freiburg held-out data to **1.4675 °C MAE** on the unseen Novi Sad evaluation, while the two comparison systems degrade more strongly under the same source-only protocol.
+TimeMixer obtains a marginally lower Freiburg MAE. The more informative observation is cross-city behavior. SAM-WM changes from **1.4515 °C MAE** on Freiburg held-out data to **1.4675 °C MAE** on the unseen Novi Sad evaluation, while the two comparison systems degrade more strongly under the same source-only protocol.
 
 The ablations also prevent an overly simple novelty claim. Removing SIGReg reduces Freiburg error but weakens transfer/calibration; removing the mental map increases error in both domains; removing the residual branch affects the unseen-city result more strongly. Conversely, removing exchange barely changes aggregate MAE. The exchange mechanism is therefore motivated by its structural conservation contract rather than by a claim that it alone improves aggregate accuracy.
 
-The FortyGuard replay tests a different question from the paper benchmarks: whether the frozen deployment bundle is sufficiently calibrated on the real provider context. Its empirical coverage is **79.899691%** against a fixed **80.000000%** minimum. CoolWorld consequently keeps `operational_certified=false`; the threshold is not weakened after observing the result.
+The FortyGuard replay tests a different question from the benchmarks: whether the frozen deployment bundle is sufficiently calibrated on the real provider context. Its empirical coverage is **79.899691%** against a fixed **80.000000%** minimum. CoolWorld consequently keeps `operational_certified=false`; the threshold is not weakened after observing the result.
 
 ## FortyGuard integration
 
-CoolWorld uses the FortyGuard Temperature API as the deployment evidence source. The repository contains **65 recorded hourly TCM frames** over a single **36-tile San José, California** grid. Requests and completed responses are content-addressed, and the public application uses recorded evidence by default. No provider API key is committed or exposed in the browser.
+CoolWorld uses the FortyGuard Temperature API as the deployment evidence source. The repository contains **65 recorded hourly TCM frames** over a single **36-tile San José, California** grid. Requests and completed responses are content-addressed, and the public application uses recorded evidence by default.
 
-The collector reads the participant credential only from the server-side `FORTYGUARD_API_KEY` environment variable and sends it in FortyGuard's required `api-key` header. The tracked completed request contains a provider-issued `activity_id` and a completed response artifact; the secret credential itself is intentionally never written to Git.
+The collector reads the participant credential only from the server-side `FORTYGUARD_API_KEY` environment variable and sends it in FortyGuard's required `api-key` header. The tracked completed request contains a provider-issued `activity_id` and a completed response artifact. 
 
 One tracked request is stored at [`artifacts/fortyguard/f5f0fdf137c5dedfef886e8dba32b5038b97f247640328110c67acbff8e096ee.activity.json`](artifacts/fortyguard/f5f0fdf137c5dedfef886e8dba32b5038b97f247640328110c67acbff8e096ee.activity.json):
 
@@ -350,7 +346,7 @@ The promoted deployment checkpoint was replayed without retraining on the record
 | Fixed minimum | **80.000000%** |
 | Operational certification | **FAIL** |
 
-The fixed threshold is not modified after evaluation. CoolWorld therefore exposes this checkpoint as a **research forecast**, not an operationally certified temperature forecast.
+The fixed threshold is not modified after evaluation.
 
 ## Demo guide
 
@@ -421,15 +417,13 @@ python scripts/plot_results.py \
   --out artifacts/paper_suite/figures
 ```
 
-The completed deadline archive contains all 40 checkpoints, all 40 training histories, and PDF/SVG/600-dpi PNG exports of all six figure families. The lightweight repository export is under [`results/paper_suite/`](results/paper_suite/), including the exact machine-readable result object and selected SAM-WM checkpoint.
-
-The final paper checkpoint is [`results/paper_suite/checkpoints/samwm_seed42_best.pt`](results/paper_suite/checkpoints/samwm_seed42_best.pt), selected by Freiburg validation MAE only. SHA-256:
+The final checkpoint is [`results/paper_suite/checkpoints/samwm_seed42_best.pt`](results/paper_suite/checkpoints/samwm_seed42_best.pt), selected by Freiburg validation MAE only. SHA-256:
 
 ```text
 d29e2939f86e7d6961dd16b6d2e5e20a2868d1c003825ef5c0ad2eae996f18dc
 ```
 
-The public application uses a separate hash-locked deployment bundle in `artifacts/deployment/`; the paper checkpoint must not replace it without regenerating and validating the deployment calibration/evaluation chain.
+The public application uses a separate hash-locked deployment bundle in `artifacts/deployment/`; the checkpoint must not replace it without regenerating and validating the deployment calibration/evaluation chain.
 
 ## Repository layout
 
@@ -457,19 +451,12 @@ Core executable entry points remain at repository root because the Makefile and 
 - The provider replay reaches 79.899691% empirical coverage against a fixed 80% operational threshold; the current deployment is therefore not operationally certified.
 - No independent treated/control intervention dataset is present, so the repository does not report a causal temperature reduction for trees, shade, reflective materials, or other physical interventions; the CANDRA action gate therefore remains closed in the public runtime.
 - The iTransformer and TimeMixer comparison systems are task adapters, not official-author code reproductions.
-- The final deadline paper suite reports one unseen-city evaluation, Novi Sad. Turku was deferred when the FAIRUrbTemp host was unavailable during the final run.
 - Conservative exchange is structurally conservative but does not produce a material aggregate-MAE improvement in the present ablation.
 - Relative-humidity availability differs between source and target data; the −RH experiment exposes this modality shift.
 
 ### Future work
 
 Immediate research priorities are to evaluate additional unseen cities when the required source data are available, improve deployment-domain calibration without changing thresholds after evaluation, and collect genuine treated/control intervention datasets for CANDRA. A later engineering deployment should additionally incorporate site constraints, intervention cost, permissions, maintenance requirements, and longitudinal post-intervention monitoring.
-
-## Development and disclosure
-
-The repository was created during the FortyGuard Hackathon build window. The FortyGuard client is a custom integration rather than a clone of the Temperature API Quickstart.
-
-AI-assisted tools were used for code review, debugging, testing, documentation editing, and figure-layout review. Training outputs, provider responses, model checkpoints, benchmark values, thresholds, and reported figures come from the tracked execution artifacts.
 
 ## References
 
