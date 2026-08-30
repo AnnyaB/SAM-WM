@@ -1,8 +1,9 @@
 # SAM-WM · CoolWorld
 
-**Sparse Adaptive Mechanism World Model for urban thermal forecasting**
+**Sparse Adaptive Mechanism World Model for Urban Heat Forecasting**
 
-**Krsna · FortyGuard Hackathon'26 · Track 1 — Resilient Cities & Infrastructure**
+**Krsna · FortyGuard Hackathon'26**  
+**Primary track:** Track 5 — Model Designing · **Secondary track:** Track 1 — Resilient Cities & Infrastructure
 
 <p align="center">
   <b><a href="https://sam-wm-coolworld.onrender.com/">Live Demo</a> · <a href="results/paper_suite/paper_suite_results.json">Results</a> · <a href="docs/architecture/samwm_system_architecture.svg">Architecture</a></b>
@@ -10,7 +11,7 @@
 
 SAM-WM is a compact world model for short-horizon urban thermal forecasting. It represents an urban sensor field as a sparse physical graph, encodes a 48-hour observation context, routes four typed thermal updates, and rolls the latent state forward recurrently for six one-hour forecast steps. CoolWorld connects that forecast to a resilient-city workflow: persistent heat is prioritized for engineering review, while intervention effects remain outside the model until treated/control measurements exist.
 
-The implementation contains **117,705 trainable parameters** in the final paper configuration.
+The implementation contains **117,705 trainable parameters** in the final paper configuration. The primary competition fit is **Track 5 — Model Designing** because the core contribution is a trained, validated and packaged microclimate forecasting model; **Track 1 — Resilient Cities & Infrastructure** is the downstream application context through persistent-hotspot prioritization for engineering review.
 
 ## Architecture
 
@@ -29,10 +30,7 @@ Let $G=(V,E)$ be the sparse city graph, $T_i^t$ the normalized temperature at no
 ```math
 \boldsymbol{\alpha}_i^t
 =
-\operatorname{softmax}
-\left(
-r_\theta\!\left([z_i^t,\tau^t]\right)
-\right),
+\mathrm{softmax}\!\left(r_\theta([z_i^t,\tau^t])\right),
 \qquad
 \boldsymbol{\alpha}_i^t
 =
@@ -51,43 +49,34 @@ For an undirected physical edge $(i,j)$, the exchange operator learns a non-nega
 ```math
 F_{ij}^{t}
 =
-\kappa_{ij}^{t}
-\left(T_j^t-T_i^t\right),
+\kappa_{ij}^{t}\left(T_j^t-T_i^t\right),
 \qquad
 \Delta_{i,\mathrm{ex}}^{t}
 =
-\sum_{j:(i,j)\in E} F_{ij}^{t},
+\sum_{j:(i,j)\in E} F_{ij}^{t}.
 ```
 
-with the opposite contribution applied at node $j$. Consequently, the exchange term alone has zero global sum up to floating-point error. Wind transport uses an analogous conservative edge update with an upwind temperature when wind observations are available.
+The opposite contribution is applied at node $j$. Consequently, the exchange term alone has zero global sum up to floating-point error. Wind transport uses an analogous conservative edge update with an upwind temperature when wind observations are available.
 
 The local forcing terms are bounded:
 
 ```math
 \Delta_{i,\mathrm{src}}^{t}
 =
-\alpha_i^{\mathrm{src}}
-\, b_{\mathrm{src}}\,
-\tanh
-\left(
-s_\theta([z_i^t,\tau^t])
-\right),
+\alpha_i^{\mathrm{src}}\,b_{\mathrm{src}}\,
+\mathrm{tanh}\!\left(s_\theta([z_i^t,\tau^t])\right),
 ```
 
 ```math
 \Delta_{i,\mathrm{res}}^{t}
 =
-\alpha_i^{\mathrm{res}}
-\, \rho\, b_{\mathrm{src}}\,
-\tanh
-\left(
-q_\theta([z_i^t,\tau^t])
-\right),
+\alpha_i^{\mathrm{res}}\,\rho\,b_{\mathrm{src}}\,
+\mathrm{tanh}\!\left(q_\theta([z_i^t,\tau^t])\right),
 \qquad
 \rho=0.20.
 ```
 
-The one-step field update implemented in `src/coolworld/samwm.py` is therefore
+The one-step field update implemented in `src/coolworld/samwm.py` is
 
 ```math
 \boxed{
@@ -102,26 +91,19 @@ T_i^t
 \Delta_{i,\mathrm{src}}^{t}
 +
 \Delta_{i,\mathrm{res}}^{t}
-}
+}.
 ```
 
-followed by recurrent latent dynamics and another sparse-map update:
+The recurrent latent state is then updated and passed through the sparse mental map again:
 
 ```math
-\tilde z_i^{t+1}
+\widetilde{z}_i^{t+1}
 =
-\operatorname{GRUCell}
-\left(
-[z_i^t,\tau^t,\Delta T_i^t],
-z_i^t
-\right),
+\mathrm{GRUCell}\!\left([z_i^t,\tau^t,\Delta T_i^t],z_i^t\right),
 \qquad
 z^{t+1}
 =
-\mathcal{M}_\theta
-\left(
-\tilde z^{t+1},G
-\right).
+\mathcal{M}_\theta\!\left(\widetilde{z}^{t+1},G\right).
 ```
 
 The uncertainty head predicts a Laplace log-scale for each node and horizon. Training combines latent prediction, Laplace negative log-likelihood, and an attributed SIGReg term:
@@ -133,11 +115,40 @@ The uncertainty head predicts a Laplace log-scale for each node and horizon. Tra
 +
 \mathcal{L}_{\mathrm{Laplace}}
 +
-\lambda_{\mathrm{sig}}\,
-\mathcal{L}_{\mathrm{SIGReg}}.
+\lambda_{\mathrm{sig}}\mathcal{L}_{\mathrm{SIGReg}}.
 ```
 
 SIGReg is adapted from LeJEPA/LeWM and is not claimed as an original contribution. The SAM-WM contribution is the sparse continuous-field representation with routed, bounded mechanisms and the evidence-bounded forecast/deployment interface.
+
+### CANDRA: causal-action evidence gate
+
+CANDRA is **not** part of SAM-WM training and it does not alter the ordinary +1…+6 h forecast. It is a downstream evidence gate used only after a real physical intervention has independent treated/control measurements. For each horizon $h$, the implementation in `src/coolworld/candra.py` forms the difference-in-differences contrast
+
+```math
+D_{h,n}
+=
+\left(T^{\mathrm{tr}}_{h,n,\mathrm{post}}-T^{\mathrm{tr}}_{h,n,\mathrm{pre}}\right)
+-
+\left(T^{\mathrm{ct}}_{h,n,\mathrm{post}}-T^{\mathrm{ct}}_{h,n,\mathrm{pre}}\right),
+```
+
+and estimates the intervention effect as
+
+```math
+\widehat{\delta}_h
+=
+\frac{1}{N_h}\sum_{n=1}^{N_h}D_{h,n}.
+```
+
+A temporal block bootstrap produces the 95% interval $[L_h,U_h]$. Cooling is supported at horizon $h$ only when
+
+```math
+U_h < 0.
+```
+
+`src/coolworld/action_evidence.py` requires this condition at **every requested horizon in both a source study and an independent transfer study** before an action artifact can set `transfer_validated=true`. At runtime, `src/coolworld/deployment.py` additionally checks the requested action, horizon, coverage regime, provenance, interval ordering and evidence support before any counterfactual action effect can be applied.
+
+The current public deployment intentionally has **no `candra_actions.json` artifact**, because no independent treated/control intervention dataset is present. CoolWorld therefore abstains from numerical cooling claims for shade, trees, reflective surfaces or other interventions. This is a fail-closed design choice, not a missing forecast capability.
 
 ## Experiments
 
@@ -220,6 +231,8 @@ The exchange operator is justified here by its structural conservation property,
 ## FortyGuard integration
 
 CoolWorld uses the FortyGuard Temperature API as the deployment evidence source. The repository contains **65 recorded hourly TCM frames** over a single **36-tile San José, California** grid. Requests and completed responses are content-addressed, and the public application uses recorded evidence by default. No provider API key is committed or exposed in the browser.
+
+The collector reads the participant credential only from the server-side `FORTYGUARD_API_KEY` environment variable and sends it in FortyGuard's required `api-key` header. The tracked completed request below contains a provider-issued `activity_id` and a completed response artifact; the secret credential itself is intentionally never written to Git.
 
 One tracked request is stored at [`artifacts/fortyguard/f5f0fdf137c5dedfef886e8dba32b5038b97f247640328110c67acbff8e096ee.activity.json`](artifacts/fortyguard/f5f0fdf137c5dedfef886e8dba32b5038b97f247640328110c67acbff8e096ee.activity.json):
 
@@ -400,7 +413,7 @@ Core executable entry points are retained at repository root because the Makefil
 ## Limitations
 
 - The provider replay reaches 79.899691% empirical coverage against a fixed 80% operational threshold; the current deployment is therefore not operationally certified.
-- No independent treated/control intervention dataset is present, so the repository does not report a causal temperature reduction for trees, shade, reflective materials, or other physical interventions.
+- No independent treated/control intervention dataset is present, so the repository does not report a causal temperature reduction for trees, shade, reflective materials, or other physical interventions; the CANDRA action gate therefore remains closed in the public runtime.
 - The iTransformer and TimeMixer comparison systems are task adapters, not official-author code reproductions.
 - The final deadline paper suite reports one unseen-city evaluation, Novi Sad. Turku was deferred when the FAIRUrbTemp host was unavailable during the final run.
 - Conservative exchange is structurally conservative but does not produce a material aggregate-MAE improvement in the present ablation.
