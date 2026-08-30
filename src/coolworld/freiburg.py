@@ -49,18 +49,7 @@ def _inspect_csv_shape(path: Path, sample_rows: int = 32) -> tuple[tuple[str, ..
 
 
 def read_freiburg_table(path: str | Path) -> pd.DataFrame:
-    """Read the checksum-verified Freiburg release into its five semantic fields.
-
-    Zenodo documents five fields. The released CSV can expose a quoted
-    ``variable,value`` header as one physical header field while its data rows still
-    contain five comma-separated fields. Pandas then silently shifts the first row
-    field into the index. We detect that physical layout before pandas parsing and
-    supply the documented five-column schema explicitly. Unknown layouts fail closed.
-
-    The Zenodo record documents ``Ta_degC`` for temperature, while the released file
-    observed in the Kaggle execution can contain ``Ta_deg_C``. Both are canonicalized
-    to the documented internal label ``Ta_degC`` before tensor construction.
-    """
+    """Read the checksum-verified Freiburg release into its five semantic fields."""
     path = Path(path)
     header, row_widths = _inspect_csv_shape(path)
 

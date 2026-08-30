@@ -1,10 +1,7 @@
 /* SAM-WM city-model inspector.
- * This layer changes presentation only. It does not modify model weights,
- * provider evidence, forecast values, thresholds, or causal gates.
+ * This layer changes presentation.
  */
 
-/* The earlier inline mechanism strip consumed a full grid row and reduced the
- * 3D city viewport. The model explanation now lives in the top-bar inspector. */
 .cw-model-flow {
   display: none !important;
 }

@@ -66,13 +66,7 @@ def _complete_hourly_index(start: str, end: str) -> pd.DatetimeIndex:
 
 
 def _split_freiburg_variable_value(series: pd.Series) -> tuple[pd.Series, pd.Series]:
-    """Split the released quoted ``variable,value`` field without guessing.
 
-    The Zenodo record defines ``variable`` and ``value`` as separate semantic fields.
-    Some CSV parse paths expose the released quoted pair as one column named
-    ``variable,value``. Each row must therefore contain exactly one supported variable
-    token followed by one numeric value. Anything else fails closed.
-    """
     text = series.astype(str).str.strip()
     split = text.str.rsplit(",", n=1, expand=True)
     if split.shape[1] != 2:

@@ -1,10 +1,8 @@
-/* SAM-WM v0.6 browser renderer.
- * Reality contract:
- * - Basemap / building geometry: real map tiles only.
- * - Observed thermal values: real FortyGuard evidence only.
- * - Predicted thermal values: explicit model prediction only.
- * - Camera motion / between-frame interpolation: visualization only.
- * - No invented intervention structure height and no hard-coded cooling effect.
+/* SAM-WM browser renderer.
+ * - Basemap / building geometry: real map tiles.
+ * - Observed thermal values: real FortyGuard evidence.
+ * - Predicted thermal values: explicit model prediction.
+ * - Camera motion / between-frame interpolation: visualization.
  */
 (() => {
   'use strict';

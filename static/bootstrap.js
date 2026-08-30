@@ -111,11 +111,11 @@
 
       // app.js is the core renderer/runtime client. Only a core failure should
       // keep the dependency overlay visible.
+
       await loadApp();
       overlay.classList.add('hidden');
 
       // Load presentation enhancements after the usable application is visible.
-      // A presentation-layer failure can never black-screen the core UI.
       await Promise.all([
         loadEnhancement(loadInterpretability, 'CoolWorld guidance'),
         loadEnhancement(loadCityModel, 'SAM-WM city-model inspector'),

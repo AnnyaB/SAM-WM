@@ -14,12 +14,7 @@ from coolworld.freiburg import load_freiburg
 
 
 def configure_reproducibility() -> None:
-    """Request deterministic kernels where PyTorch provides them.
-
-    Exact floating-point identity across different GPU models/software stacks is
-    not promised; seeds, config, data hashes and held-out receipts remain the
-    reproducibility record.
-    """
+    """Request deterministic kernels where PyTorch provides them."""
     os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
     torch.use_deterministic_algorithms(True, warn_only=True)
     if torch.backends.cudnn.is_available():

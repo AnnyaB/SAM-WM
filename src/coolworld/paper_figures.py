@@ -10,7 +10,6 @@ import numpy as np
 
 from .paper_models import baseline_display_name
 
-# Restrained publication palette inspired by the visual discipline used in LeWM figures.
 SAM_RED = "#E76F51"
 SAM_RED_LIGHT = "#F2A38E"
 BASELINE_BLUE = "#607D9A"
@@ -329,9 +328,6 @@ def plot_forecast_trace(payload: dict, out: Path) -> None:
     domain = "turku" if "turku" in payload["summary"][models[0]]["domains"] else "novisad"
     x = np.arange(1, 7)
 
-    # Keep the data panel compact and reserve a clean right-hand column for the legend.
-    # This avoids placing labels on top of the trajectories while preserving the same
-    # underlying trace values and publication palette.
     fig, ax = plt.subplots(figsize=(5.15, 2.45))
     first = payload["raw"][models[0]]["domains"][domain][0]["trace"]
     target = np.asarray(first["target_mean_c"], dtype=float)
@@ -347,8 +343,6 @@ def plot_forecast_trace(payload: dict, out: Path) -> None:
     ax.set_title(f"Representative zero-shot rollout · {DOMAIN_LABEL[domain]}")
     _clean(ax)
 
-    # Publication-style legend: outside the plotting rectangle, vertically aligned,
-    # frameless, and ordered exactly as the plotted trajectories.
     ax.legend(
         loc="upper left",
         bbox_to_anchor=(1.02, 1.0),

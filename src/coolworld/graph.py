@@ -56,11 +56,7 @@ def local_static_features(
 
 
 def knn_graph(lat: np.ndarray, lon: np.ndarray, k: int = 4) -> tuple[torch.Tensor, torch.Tensor]:
-    """Build an undirected sparse physical kNN graph without dense N×N distances.
-
-    `cKDTree` gives scalable neighbour discovery while the learned graph operators
-    remain O(E). Edge attributes are `[unit_x, unit_y, log1p(distance_km)]`.
-    """
+    """Build an undirected sparse physical kNN graph without dense N×N distances."""
     lat = np.asarray(lat, dtype=float)
     lon = np.asarray(lon, dtype=float)
     if len(lat) < 2:

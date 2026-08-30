@@ -375,6 +375,18 @@ The fixed threshold is not modified after evaluation.
 
 The public demo is designed to be judged without a login, installation, or API credential: [**Open CoolWorld**](https://sam-wm-coolworld.onrender.com/).
 
+### Recommended: start with the Guided Demo
+
+For the fastest end-to-end walkthrough, click **START HERE · GUIDED DEMO** in the application, then select **Start**.
+
+The guided demo walks through CoolWorld in five steps:
+
+**Measure the city → forecast six hours → find persistent heat → test a physical intervention → measure the result.**
+
+Use **Next →** and **← Back** to move through the workflow, or **Restart** to begin again.
+
+Alternatively, explore the application directly using the main stages below:
+
 1. **Observe.** Select **OBSERVE** first. This view presents the recorded FortyGuard thermal evidence used by the deployment workflow: 65 recorded hourly frames over a fixed 36-tile San José grid. Interpret this stage as provider evidence, not a SAM-WM forecast.
 2. **Forecast.** Select **FORECAST**. CoolWorld takes the latest valid 48-hour context and runs the frozen SAM-WM checkpoint recurrently for +1…+6 h. Forecast values and their uncertainty interval are displayed separately from observations. Interpret this as a research prediction, not a measurement or operational guarantee.
 3. **Prioritize.** Select **PRIORITIZE**. Tiles are ranked using their predicted future temperature trajectory and persistence among the hotter part of the forecast field. Priority means that a location merits engineering investigation first; it does not mean that a particular intervention is already proven to reduce temperature by a specified amount.

@@ -19,7 +19,7 @@ class _TemporalMixer(nn.Module):
 
 
 class TimeMixerAdapter(nn.Module):
-    """Matched multiscale baseline inspired by TimeMixer (ICLR 2024).
+    """multiscale baseline inspired by TimeMixer (ICLR 2024).
 
     This is an independent task adapter, not the authors' official implementation.
     It retains the central multiscale seasonal/trend mixing idea while using shared

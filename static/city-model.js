@@ -14,8 +14,7 @@
   }
 
   function removeInlineModelFlow() {
-    // The mechanism explainer belongs in the top-bar model inspector, not in
-    // the city viewport. Removing it restores the original large 3D map row.
+
     $('cwModelFlow')?.remove();
   }
 
@@ -200,7 +199,7 @@
       ? 'PLAYBACK · Press ▶ or drag the slider to inspect SAM-WM from +1 h to +6 h. This changes the displayed forecast hour; it does not generate new data.'
       : 'PLAYBACK · Press ▶ or drag the slider to inspect the 65 recorded hourly city fields. Each stop is one stored provider observation.';
 
-    // Important: write only when the content actually changes. This keeps the
+    // write only when the content actually changes. This keeps the
     // enhancement idempotent and avoids MutationObserver feedback loops.
     if (truth.textContent !== nextText) {
       truth.textContent = nextText;

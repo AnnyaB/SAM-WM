@@ -23,11 +23,7 @@ def difference_in_differences_block_bootstrap(
     samples: int = 2000,
     seed: int = 0,
 ) -> EffectInterval:
-    """Temporal block-bootstrap DiD reference estimator.
-
-    This is only valid when treatment/control design assumptions are independently justified.
-    It deliberately refuses to turn ordinary observational forecasts into intervention effects.
-    """
+    """Temporal block-bootstrap DiD reference estimator."""
     tp, tq, cp, cq = [
         np.asarray(x, float).reshape(-1)
         for x in (treated_pre, treated_post, control_pre, control_post)

@@ -21,13 +21,7 @@ class FortyGuardResult:
 
 
 class FortyGuardClient:
-    """Fail-closed, crash-resumable FortyGuard Temperature API client.
-
-    The request intent and exact payload are persisted before POST. Once an
-    ``activity_id`` is known, restarts resume that provider activity rather than
-    spending another request. An ambiguous POST transport failure is never retried
-    automatically because the provider may already have accepted it.
-    """
+    """Fail-closed, crash-resumable FortyGuard Temperature API client."""
 
     def __init__(
         self,

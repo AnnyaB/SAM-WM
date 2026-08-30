@@ -4,7 +4,7 @@ from torch import Tensor, nn
 
 
 class ITransformerAdapter(nn.Module):
-    """Matched node-token baseline inspired by iTransformer (ICLR 2024).
+    """node-token baseline inspired by iTransformer (ICLR 2024).
 
     This is an independent task adapter, not the authors' official implementation.
     Each urban sensor is represented as one token containing its complete dynamic
