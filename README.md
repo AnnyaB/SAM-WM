@@ -3,7 +3,7 @@
 <p align="center">
   <video
     src=https://github.com/user-attachments/assets/2b27a7f3-0f87-4213-9580-180f6c66baf4
-    width="620"
+    width="500"
     controls
     playsinline>
   </video>
