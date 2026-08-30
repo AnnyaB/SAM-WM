@@ -1,0 +1,11 @@
+{
+  "protocol": "SAM_WM_PAPER_SUITE_SELECTED_CHECKPOINT_V1",
+  "model": "samwm",
+  "seed": 42,
+  "selection_metric": "Freiburg validation MAE",
+  "selection_rule": "minimum validation MAE among the five completed full SAM-WM seeds; held-out Freiburg and Novi Sad were not used for checkpoint selection",
+  "best_val_mae_c": 1.388100839741297,
+  "checkpoint_path": "results/paper_suite/checkpoints/samwm_seed42_best.pt",
+  "checkpoint_sha256": "d29e2939f86e7d6961dd16b6d2e5e20a2868d1c003825ef5c0ad2eae996f18dc",
+  "archive_source": "SAM-WM-PAPER-SUITE-FINAL-FREIBURG-NOVISAD.zip"
+}
