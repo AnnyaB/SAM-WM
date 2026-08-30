@@ -1,50 +1,38 @@
-# SAM-WM matched paper-suite evidence
+# Final matched paper-suite evidence
 
-This directory is the reviewable result package from the final five-seed Kaggle experiment: **40/40 completed fits** (8 model/ablation families × 5 seeds).
+This directory is the lightweight, judge-readable export of the **completed Kaggle paper suite**. The authoritative result object and the six SVG figures here are copied directly from `SAM-WM-PAPER-SUITE-FINAL-FREIBURG-NOVISAD.zip`; they are not re-drawn or manually transcribed.
+
+## Final protocol
+
+- **40/40 fits:** 8 model/ablation families × 5 seeds (`17, 29, 42, 73, 101`).
+- **Train:** Freiburg train split only.
+- **Checkpoint selection:** Freiburg validation MAE only.
+- **Uncertainty calibration:** Freiburg validation residuals only.
+- **ID test:** Freiburg held-out.
+- **OOD test:** Novi Sad, zero-shot.
+- **Target fine-tuning/recalibration:** none.
+- **Context / horizon:** 48 h → +1…+6 h.
+- **Turku:** deferred in the final deadline run because the FAIRUrbTemp host was unavailable; see `FINAL_MANIFEST.json`.
 
 ## Files
 
-- `paper_suite_results.json` — protocol/index linking the complete split result files.
-- `training_histories.json` — all 40 Freiburg training/validation histories used by the learning-dynamics figure.
-- `raw/*.json` — every per-seed Freiburg/Novi Sad evaluation record split by model/variant, including horizon metrics, coverage, latency, parameter counts and representative traces.
-- `summary/*.json` — aggregate five-seed records split by model/variant.
-- `FINAL_MANIFEST.json` — completion/provenance manifest.
-- `figures/*.svg` — tracked editable vector figures used by the README. `scripts/plot_paper_elite.py` regenerates SVG, vector PDF and 600-dpi PNG exports from the machine-readable evidence.
+- `paper_suite_results.json` — exact final machine-readable result object; SHA-256 `434e2d1846c9652e07c6aef055812e4333fe99d030e384983bcb40dcae06a0f6`.
+- `FINAL_MANIFEST.json` — exact final completion manifest.
+- `figures/main_horizon_results.svg` — horizon-wise Freiburg/Novi Sad MAE, five-seed mean ± SD.
+- `figures/forecast_and_calibration.svg` — matched cross-city accuracy and frozen source calibration.
+- `figures/samwm_ablations.svg` — full SAM-WM vs five controlled ablations.
+- `figures/efficiency.svg` — parameter/latency efficiency evidence.
+- `figures/learning_curves.svg` — actual validation-learning histories.
+- `figures/forecast_trace.svg` — representative zero-shot Novi Sad forecast trace.
+- `checkpoints/samwm_seed42_best.pt` — selected full SAM-WM checkpoint from the final suite.
+- `SELECTED_CHECKPOINT.json` — selection criterion and checksum for that checkpoint.
 
-The original Kaggle archive also retains all 40 `best.pt` research checkpoints. Those per-run binaries are intentionally not duplicated in Git. The promoted model actually used by CoolWorld is committed separately at `artifacts/deployment/best.pt`.
+The original Kaggle archive also contains **all 40 `best.pt` checkpoints, all 40 `history.json` files, and PDF/SVG/600-dpi PNG versions of all six figure families**. Those redundant per-run binaries are intentionally not copied into Git.
 
-## Protocol
+## Important comparison boundary
 
-- Freiburg train only;
-- Freiburg validation only for checkpoint selection;
-- Freiburg validation residuals only for conformal calibration;
-- Freiburg held-out ID test;
-- Novi Sad zero-shot OOD test;
-- no target fine-tuning;
-- no target recalibration;
-- 48 h context → +1…+6 h;
-- seeds `17, 29, 42, 73, 101`.
+`iTransformer-adapted` and `TimeMixer-adapted` are matched independent task adapters inspired by the peer-reviewed architectures. They are **not** the authors' official repositories, so this suite supports a matched internal comparison, not a universal or official-SOTA claim.
 
-The external baselines are independent matched adapters inspired by the peer-reviewed iTransformer and TimeMixer architectures. They are not the authors' official implementations.
+## Deployment checkpoint is separate
 
-FAIRUrbTemp/Turku was not rerun for every matched model during the deadline window because the public dataset host became unavailable. The earlier frozen SAM-WM-only Turku result remains in `artifacts/summary.json` and is deliberately kept separate from the matched baseline claims.
-
-## Figures
-
-- `benchmark_overview.svg` — cross-city MAE and frozen-source empirical coverage.
-- `horizon_transfer.svg` — actual +1…+6 h MAE curves for the three full models.
-- `ablation_study.svg` — full SAM-WM versus five controlled ablations.
-- `learning_dynamics.svg` — five-seed Freiburg validation learning dynamics.
-- `calibration_efficiency.svg` — OOD coverage and compactness versus OOD error.
-- `forecast_trace.svg` — representative six-hour observed/predicted traces.
-- `frozen_three_domain.svg` — separate frozen SAM-WM-only Freiburg/Novi Sad/Turku benchmark.
-
-Regenerate SVG/PDF/600-dpi PNG exports with:
-
-```bash
-python scripts/plot_paper_elite.py \
-  --results results/paper_suite/paper_suite_results.json \
-  --histories results/paper_suite/training_histories.json \
-  --frozen-summary artifacts/summary.json \
-  --out results/paper_suite/figures
-```
+The live CoolWorld application uses the already promoted, hash-locked bundle under `artifacts/deployment/`. Do **not** replace `artifacts/deployment/best.pt` with the paper-suite checkpoint without re-generating and re-validating its calibration, evaluation, promotion and provider-replay artifacts.
