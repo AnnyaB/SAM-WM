@@ -12,15 +12,15 @@ test:
 	$(PYTHON) -m pytest
 
 lint:
-	ruff check src tests scripts
+	$(PYTHON) -m ruff check src tests scripts
 
 format-check:
-	ruff format --check src tests scripts
+	$(PYTHON) -m ruff format --check src tests scripts
 
 verify:
 	$(PYTHON) -m compileall -q src scripts
-	ruff check src tests scripts
-	ruff format --check src tests scripts
+	$(PYTHON) -m ruff check src tests scripts
+	$(PYTHON) -m ruff format --check src tests scripts
 	$(PYTHON) -m pytest
 
 verify-runtime:
@@ -52,4 +52,4 @@ paper-figures:
 	$(PYTHON) scripts/plot_results.py
 
 serve:
-	uvicorn coolworld.app:app --reload --host 127.0.0.1 --port 8000
+	$(PYTHON) -m uvicorn coolworld.app:app --reload --host 127.0.0.1 --port 8000
