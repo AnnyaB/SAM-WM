@@ -328,7 +328,11 @@ def plot_forecast_trace(payload: dict, out: Path) -> None:
     models = [name for name in ("samwm", "itransformer", "timemixer") if name in payload["models"]]
     domain = "turku" if "turku" in payload["summary"][models[0]]["domains"] else "novisad"
     x = np.arange(1, 7)
-    fig, ax = plt.subplots(figsize=(3.75, 2.45))
+
+    # Keep the data panel compact and reserve a clean right-hand column for the legend.
+    # This avoids placing labels on top of the trajectories while preserving the same
+    # underlying trace values and publication palette.
+    fig, ax = plt.subplots(figsize=(5.15, 2.45))
     first = payload["raw"][models[0]]["domains"][domain][0]["trace"]
     target = np.asarray(first["target_mean_c"], dtype=float)
     ax.plot(x, target, color=INK, marker="o", linewidth=1.6, label="Observed")
@@ -336,12 +340,25 @@ def plot_forecast_trace(payload: dict, out: Path) -> None:
         trace = payload["raw"][model]["domains"][domain][0]["trace"]
         pred = np.asarray(trace["prediction_mean_c"], dtype=float)
         ax.plot(x, pred, color=MODEL_COLORS[model], marker="o", label=baseline_display_name(model))
+
     ax.set_xticks(x)
     ax.set_xlabel("Forecast horizon (h)")
     ax.set_ylabel("Spatial-mean temperature (°C)")
     ax.set_title(f"Representative zero-shot rollout · {DOMAIN_LABEL[domain]}")
     _clean(ax)
-    ax.legend(loc="best")
+
+    # Publication-style legend: outside the plotting rectangle, vertically aligned,
+    # frameless, and ordered exactly as the plotted trajectories.
+    ax.legend(
+        loc="upper left",
+        bbox_to_anchor=(1.02, 1.0),
+        borderaxespad=0.0,
+        frameon=False,
+        handlelength=2.6,
+        handletextpad=0.8,
+        labelspacing=0.65,
+    )
+    fig.subplots_adjust(right=0.70)
     _save(fig, out, "forecast_trace")
 
 
