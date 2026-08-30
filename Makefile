@@ -1,5 +1,4 @@
 PYTHON ?= python
-PY_SCRIPTS = train.py eval.py research.py paper_suite.py promote.py provider_replay.py candra_fit.py fortyguard_check.py fortyguard_collect.py plot.py summarize.py verify_runtime.py
 
 .PHONY: install install-app test lint format-check verify verify-runtime verify-frontend verify-demo train research paper-suite paper-figures serve
 
@@ -13,19 +12,19 @@ test:
 	$(PYTHON) -m pytest
 
 lint:
-	ruff check src tests $(PY_SCRIPTS)
+	ruff check src tests scripts
 
 format-check:
-	ruff format --check src tests $(PY_SCRIPTS)
+	ruff format --check src tests scripts
 
 verify:
-	$(PYTHON) -m compileall -q src $(PY_SCRIPTS)
-	ruff check src tests $(PY_SCRIPTS)
-	ruff format --check src tests $(PY_SCRIPTS)
+	$(PYTHON) -m compileall -q src scripts
+	ruff check src tests scripts
+	ruff format --check src tests scripts
 	$(PYTHON) -m pytest
 
 verify-runtime:
-	$(PYTHON) verify_runtime.py
+	$(PYTHON) scripts/verify_runtime.py
 
 verify-frontend:
 	@if command -v node >/dev/null 2>&1; then \
@@ -41,13 +40,13 @@ verify-demo: verify verify-runtime verify-frontend
 	@echo "SAM-WM CoolWorld source + runtime + frontend verification passed"
 
 train:
-	$(PYTHON) train.py --seed 17
+	$(PYTHON) scripts/train.py --seed 17
 
 research:
-	$(PYTHON) research.py --out artifacts/research
+	$(PYTHON) scripts/research.py --out artifacts/research
 
 paper-suite:
-	$(PYTHON) paper_suite.py --config config/paper.yaml --mode paper --fairurb-root "$(FAIRURB_ROOT)"
+	$(PYTHON) scripts/paper_suite.py --config config/paper.yaml --mode paper --fairurb-root "$(FAIRURB_ROOT)"
 
 paper-figures:
 	$(PYTHON) scripts/plot_results.py

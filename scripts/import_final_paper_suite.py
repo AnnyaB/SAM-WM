@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import shutil
 import sys
 import zipfile
 from pathlib import Path
@@ -27,12 +26,18 @@ TARGETS = {
     "paper_suite/figures/forecast_and_calibration.svg": Path(
         "results/paper_suite/figures/forecast_and_calibration.svg"
     ),
-    "paper_suite/figures/forecast_trace.svg": Path("results/paper_suite/figures/forecast_trace.svg"),
-    "paper_suite/figures/learning_curves.svg": Path("results/paper_suite/figures/learning_curves.svg"),
+    "paper_suite/figures/forecast_trace.svg": Path(
+        "results/paper_suite/figures/forecast_trace.svg"
+    ),
+    "paper_suite/figures/learning_curves.svg": Path(
+        "results/paper_suite/figures/learning_curves.svg"
+    ),
     "paper_suite/figures/main_horizon_results.svg": Path(
         "results/paper_suite/figures/main_horizon_results.svg"
     ),
-    "paper_suite/figures/samwm_ablations.svg": Path("results/paper_suite/figures/samwm_ablations.svg"),
+    "paper_suite/figures/samwm_ablations.svg": Path(
+        "results/paper_suite/figures/samwm_ablations.svg"
+    ),
     "paper_suite/runs/samwm/seed_42/best.pt": Path(
         "results/paper_suite/checkpoints/samwm_seed42_best.pt"
     ),
@@ -150,7 +155,7 @@ def main() -> None:
 
     print("\nVerified and imported exact final Kaggle artifacts.")
     print("No training was run and no figure was regenerated.")
-    print("Review `git status --short`, then commit on finalize-hackathon-20260830 only.")
+    print("Review `git status --short` before committing the imported artifacts.")
 
 
 if __name__ == "__main__":

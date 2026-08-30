@@ -373,7 +373,7 @@ python -m pip install --upgrade pip
 python -m pip install -e '.[dev,app]'
 
 make verify
-python verify_runtime.py
+python scripts/verify_runtime.py
 make serve
 ```
 
@@ -395,13 +395,13 @@ Open `http://127.0.0.1:7860`.
 A single SAM-WM run:
 
 ```bash
-python train.py --seed 17
+python scripts/train.py --seed 17
 ```
 
 Final paper suite:
 
 ```bash
-python paper_suite.py \
+python scripts/paper_suite.py \
   --config config/paper.yaml \
   --mode paper \
   --skip-fairurb \
@@ -430,11 +430,12 @@ The public application uses a separate hash-locked deployment bundle in `artifac
 | Path | Purpose |
 |---|---|
 | `src/coolworld/` | model, graph, data, evaluation, deployment, CANDRA, and application code |
+| `scripts/` | training, evaluation, FortyGuard, deployment, CANDRA, verification, and figure CLIs |
 | `config/` | frozen training and paper-suite configurations |
 | `static/` | CoolWorld browser interface |
 | `tests/` | unit, contract, runtime, and provider-integration tests |
 | `notebooks/` | Kaggle execution notebook |
-| `scripts/` | paper-suite import and plotting utilities |
+| `examples/` | reproducible San José AOI example |
 | `artifacts/` | recorded FortyGuard evidence and frozen deployment artifacts |
 | `results/paper_suite/` | final machine-readable results, selected checkpoint, and publication figures |
 | `docs/architecture/` | exact final architecture SVG |
@@ -442,7 +443,7 @@ The public application uses a separate hash-locked deployment bundle in `artifac
 | `Makefile` | verification, training, paper-suite, and serving commands |
 | `pyproject.toml` | package metadata and dependencies |
 
-Core executable entry points remain at repository root because the Makefile and CI compile or invoke them directly.
+All executable research and deployment utilities are consolidated under `scripts/`; the repository root is reserved for project metadata and build/runtime entry files.
 
 ## Limitations and future work
 

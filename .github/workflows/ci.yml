@@ -95,7 +95,7 @@ jobs:
           --index-url https://download.pytorch.org/whl/cpu
           'torch>=2.3,<3'
       - run: python -m pip install -e '.[dev,app]'
-      - run: python verify_runtime.py
+      - run: python scripts/verify_runtime.py
 
   docker-smoke:
     name: docker-public-demo-smoke
