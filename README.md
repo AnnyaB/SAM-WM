@@ -1,8 +1,6 @@
 # CoolWorld: A World Model for the Heat Ahead
 
-**SAM-WM — Sparse Adaptive Mechanism World Model for Urban Heat Forecasting**
-
-**Krsna · FortyGuard Hackathon'26**  
+**FortyGuard Hackathon'26**  
 **Primary track:** Track 5 — Model Designing · **Secondary track:** Track 1 — Resilient Cities & Infrastructure
 
 [**Live Demo**](https://sam-wm-coolworld.onrender.com/)
@@ -11,7 +9,7 @@
 
 CoolWorld turns real FortyGuard temperature evidence into uncertainty-aware short-horizon urban heat forecasts and persistent-hotspot priorities. Its forecasting engine, **SAM-WM**, represents an urban thermal field as a sparse physical graph, learns recurrent latent dynamics, and composes bounded thermal mechanisms over six one-hour forecast steps.
 
-The final paper configuration contains **117,705 trainable parameters**. The primary competition fit is **Track 5 — Model Designing** because the central contribution is a trained, validated, and packaged microclimate forecasting model. **Track 1 — Resilient Cities & Infrastructure** is the downstream application: persistent predicted hotspots are surfaced for human engineering review rather than converted directly into unsupported intervention claims.
+The final configuration contains **117,705 trainable parameters**. The primary competition fit is **Track 5 — Model Designing** because the central contribution is a trained, validated, and packaged microclimate forecasting model. **Track 1 — Resilient Cities & Infrastructure** is the downstream application: persistent predicted hotspots are surfaced for human engineering review rather than converted directly into unsupported intervention claims.
 
 ## Problem and user
 
@@ -29,11 +27,11 @@ Learned forecasting spans several regimes. iTransformer and TimeMixer provide st
 
 These systems solve different forecasting problems. Generic time-series architectures do not, by construction, impose SAM-WM's sparse physical graph together with explicitly routed conservative exchange, optional transport, bounded local forcing, and bounded residual dynamics. Global learned weather systems operate at a fundamentally different spatial and deployment scale from a small hyperlocal urban thermal field. Pixel-based world models target visual dynamics rather than irregular temperature observations attached to physical city geometry.
 
-SAM-WM therefore studies a narrower question:
+The Proposed SAM-WM therefore studies a narrower question:
 
 > **Can a compact, structured world model forecast a sparse urban thermal field while preserving uncertainty, transfer evidence, and a strict boundary between prediction and causal intervention claims?**
 
-The aim is not to claim universal superiority over these model families. The experiments test whether this inductive structure is useful under a controlled source-only urban-temperature forecasting protocol and whether it transfers to an unseen city without target fine-tuning.
+The experiments test whether this inductive structure is useful under a controlled source-only urban-temperature forecasting protocol and whether it transfers to an unseen city without target fine-tuning.
 
 ## Proposed method
 
@@ -132,7 +130,7 @@ The uncertainty head predicts a Laplace log-scale for each node and horizon. Tra
 \lambda_{\mathrm{sig}}\mathcal{L}_{\mathrm{SIGReg}}.
 ```
 
-SIGReg is adapted from LeJEPA/LeWM and is not claimed as an original contribution. The SAM-WM contribution is the sparse continuous-field representation with routed, bounded mechanisms and the evidence-bounded forecast/deployment interface.
+SIGReg is adapted from LeJEPA/LeWM. The SAM-WM contribution is the sparse continuous-field representation with routed, bounded mechanisms and the evidence-bounded forecast/deployment interface.
 
 ### CANDRA: causal-action evidence gate
 
