@@ -1,31 +1,45 @@
-# SAM-WM · CoolWorld
+# CoolWorld: A World Model for the Heat Ahead
 
-**Sparse Adaptive Mechanism World Model for Urban Heat Forecasting**
+**SAM-WM — Sparse Adaptive Mechanism World Model for Urban Heat Forecasting**
 
 **Krsna · FortyGuard Hackathon'26**  
 **Primary track:** Track 5 — Model Designing · **Secondary track:** Track 1 — Resilient Cities & Infrastructure
 
-<p align="center">
-  <b><a href="https://sam-wm-coolworld.onrender.com/">Live Demo</a> · <a href="results/paper_suite/paper_suite_results.json">Results</a> · <a href="docs/architecture/samwm_system_architecture.svg">Architecture</a></b>
-</p>
+[**Live Demo**](https://sam-wm-coolworld.onrender.com/)
 
-SAM-WM is a compact world model for short-horizon urban thermal forecasting. It represents an urban sensor field as a sparse physical graph, encodes a 48-hour observation context, routes four typed thermal updates, and rolls the latent state forward recurrently for six one-hour forecast steps. CoolWorld connects that forecast to a resilient-city workflow: persistent heat is prioritized for engineering review, while intervention effects remain outside the model until treated/control measurements exist.
+[Problem](#problem-and-user) · [Research Gap](#existing-approaches-and-research-gap) · [Method](#proposed-method) · [Architecture](#architecture) · [Results](#experiments-and-results) · [Discussion](#discussion) · [Demo Guide](#demo-guide) · [Run](#run-from-scratch) · [References](#references)
 
-The implementation contains **117,705 trainable parameters** in the final paper configuration. The primary competition fit is **Track 5 — Model Designing** because the core contribution is a trained, validated and packaged microclimate forecasting model; **Track 1 — Resilient Cities & Infrastructure** is the downstream application context through persistent-hotspot prioritization for engineering review.
+CoolWorld turns real FortyGuard temperature evidence into uncertainty-aware short-horizon urban heat forecasts and persistent-hotspot priorities. Its forecasting engine, **SAM-WM**, represents an urban thermal field as a sparse physical graph, learns recurrent latent dynamics, and composes bounded thermal mechanisms over six one-hour forecast steps.
 
-## Architecture
+The final paper configuration contains **117,705 trainable parameters**. The primary competition fit is **Track 5 — Model Designing** because the central contribution is a trained, validated, and packaged microclimate forecasting model. **Track 1 — Resilient Cities & Infrastructure** is the downstream application: persistent predicted hotspots are surfaced for human engineering review rather than converted directly into unsupported intervention claims.
 
-<p align="center">
-  <img src="docs/architecture/samwm_system_architecture.svg" width="100%" alt="SAM-WM architecture: real FortyGuard input, sparse adaptive mechanism world model, six-hour forecast, and resilient-city decision path">
-</p>
+## Problem and user
 
-The architecture follows the executed data path. The left panel contains recorded FortyGuard Temperature API evidence over a 36-tile San José grid and the preceding 48-hour thermal context. Each frame is encoded from dynamic observations, city-centred static geometry, and cyclical time features. A temporal GRU summarizes the history; sparse message passing then updates a latent mental map on the deterministic physical kNN graph. At every forecast step, a router assigns state- and time-dependent weights to conservative exchange, optional upwind transport, bounded source/sink forcing, and bounded residual correction. The resulting temperature increment updates both the field and the recurrent latent state. A separate scale head provides forecast uncertainty. The right panel shows the frozen +1…+6 h model forecast and persistent-hotspot output used by CoolWorld.
+Urban heat varies across both space and time. A city-wide temperature statistic can therefore hide street-level and neighborhood-scale thermal differences that matter to infrastructure planning. Resilience teams need not only to observe where heat is high now, but also to identify which locations are likely to remain relatively hot over the next several hours.
 
-The lower path is deliberately outside the forecasting model: **prioritize → engineering review → measure treated vs control → validate or abstain**. SAM-WM therefore predicts where heat may persist; it does not infer the cooling effect of an unmeasured intervention.
+**CoolWorld is designed for municipal resilience, public-works, and climate-adaptation engineering teams.** Its decision problem is deliberately narrow:
 
-## Method
+> Given recent hyperlocal temperature evidence, which locations deserve engineering attention first because heat is predicted to persist?
 
-Let $G=(V,E)$ be the sparse city graph, $T_i^t$ the normalized temperature at node $i$, $z_i^t$ its latent state, and $\tau^t$ the daily/annual cyclical time encoding. The router produces four non-negative mechanism weights:
+FortyGuard supplies the deployment evidence layer. SAM-WM supplies the short-horizon predictive model. CoolWorld then ranks persistent future hotspots while keeping observation, prediction, operational certification, and causal intervention evidence explicitly separate.
+
+## Existing approaches and research gap
+
+Learned forecasting spans several regimes. iTransformer and TimeMixer provide strong generic time-series architectures (Liu *et al.*, 2024; Wang *et al.*, 2024). GraphCast, NeuralGCM, and GenCast demonstrate learned forecasting at large meteorological scales (Lam *et al.*, 2023; Kochkov *et al.*, 2024; Price *et al.*, 2025). World-model research has separately explored compact recurrent dynamics, compositional structure, and learned predictive representations (Ha and Schmidhuber, 2018; Baek *et al.*, 2025; Baek *et al.*, 2026).
+
+These systems solve different forecasting problems. Generic time-series architectures do not, by construction, impose SAM-WM's sparse physical graph together with explicitly routed conservative exchange, optional transport, bounded local forcing, and bounded residual dynamics. Global learned weather systems operate at a fundamentally different spatial and deployment scale from a small hyperlocal urban thermal field. Pixel-based world models target visual dynamics rather than irregular temperature observations attached to physical city geometry.
+
+SAM-WM therefore studies a narrower question:
+
+> **Can a compact, structured world model forecast a sparse urban thermal field while preserving uncertainty, transfer evidence, and a strict boundary between prediction and causal intervention claims?**
+
+The aim is not to claim universal superiority over these model families. The experiments test whether this inductive structure is useful under a controlled source-only urban-temperature forecasting protocol and whether it transfers to an unseen city without target fine-tuning.
+
+## Proposed method
+
+Let $G=(V,E)$ be the sparse city graph, $T_i^t$ the normalized temperature at node $i$, $z_i^t$ its latent state, and $\tau^t$ the daily/annual cyclical time encoding.
+
+The adaptive router produces four non-negative mechanism weights:
 
 ```math
 \boldsymbol{\alpha}_i^t
@@ -53,7 +67,7 @@ F_{ij}^{t}
 \qquad
 \Delta_{i,\mathrm{ex}}^{t}
 =
-\sum_{j:(i,j)\in E} F_{ij}^{t}.
+\sum_{j:(i,j)\in E}F_{ij}^{t}.
 ```
 
 The opposite contribution is applied at node $j$. Consequently, the exchange term alone has zero global sum up to floating-point error. Wind transport uses an analogous conservative edge update with an upwind temperature when wind observations are available.
@@ -76,7 +90,7 @@ The local forcing terms are bounded:
 \rho=0.20.
 ```
 
-The one-step field update implemented in `src/coolworld/samwm.py` is
+The one-step thermal field update implemented in `src/coolworld/samwm.py` is
 
 ```math
 \boxed{
@@ -106,7 +120,7 @@ z^{t+1}
 \mathcal{M}_\theta\!\left(\widetilde{z}^{t+1},G\right).
 ```
 
-The uncertainty head predicts a Laplace log-scale for each node and horizon. Training combines latent prediction, Laplace negative log-likelihood, and an attributed SIGReg term:
+The uncertainty head predicts a Laplace log-scale for each node and horizon. Training combines latent prediction, Laplace negative log-likelihood, and SIGReg:
 
 ```math
 \mathcal{L}
@@ -122,7 +136,9 @@ SIGReg is adapted from LeJEPA/LeWM and is not claimed as an original contributio
 
 ### CANDRA: causal-action evidence gate
 
-CANDRA is **not** part of SAM-WM training and it does not alter the ordinary +1…+6 h forecast. It is a downstream evidence gate used only after a real physical intervention has independent treated/control measurements. For each horizon $h$, the implementation in `src/coolworld/candra.py` forms the difference-in-differences contrast
+CANDRA is **not** part of SAM-WM training and does not alter the ordinary +1…+6 h forecast. It is a downstream evidence gate used only after a real physical intervention has independent treated/control measurements.
+
+For each horizon $h$, the implementation in `src/coolworld/candra.py` forms the difference-in-differences contrast
 
 ```math
 D_{h,n}
@@ -146,15 +162,23 @@ A temporal block bootstrap produces the 95% interval $[L_h,U_h]$. Cooling is sup
 U_h < 0.
 ```
 
-`src/coolworld/action_evidence.py` requires this condition at **every requested horizon in both a source study and an independent transfer study** before an action artifact can set `transfer_validated=true`. At runtime, `src/coolworld/deployment.py` additionally checks the requested action, horizon, coverage regime, provenance, interval ordering and evidence support before any counterfactual action effect can be applied.
+`src/coolworld/action_evidence.py` requires this condition at **every requested horizon in both a source study and an independent transfer study** before an action artifact can set `transfer_validated=true`. At runtime, `src/coolworld/deployment.py` additionally checks the requested action, horizon, coverage regime, provenance, interval ordering, and evidence support before any counterfactual action effect can be applied.
 
-The current public deployment intentionally has **no `candra_actions.json` artifact**, because no independent treated/control intervention dataset is present. CoolWorld therefore abstains from numerical cooling claims for shade, trees, reflective surfaces or other interventions. This is a fail-closed design choice, not a missing forecast capability.
+The current public deployment intentionally has **no `candra_actions.json` artifact**, because no independent treated/control intervention dataset is present. CoolWorld therefore abstains from numerical cooling claims for shade, trees, reflective surfaces, or other interventions.
 
-## Experiments
+## Architecture
 
-### Protocol
+![SAM-WM architecture: real FortyGuard input, sparse adaptive mechanism world model, six-hour forecast, and resilient-city decision path](docs/architecture/samwm_system_architecture.svg)
 
-All learned systems use the same source-only evaluation protocol. Freiburg is the only training domain; checkpoint selection and uncertainty calibration use Freiburg validation data only. Novi Sad is opened only for zero-shot evaluation, with no target fine-tuning and no target recalibration.
+The architecture follows the executed data path. The left panel contains recorded FortyGuard Temperature API evidence over a 36-tile San José grid and the preceding 48-hour thermal context. Each frame is encoded from dynamic observations, city-centred static geometry, and cyclical time features. A temporal GRU summarizes the history; sparse message passing then updates a latent mental map on the deterministic physical kNN graph. At every forecast step, a router assigns state- and time-dependent weights to conservative exchange, optional upwind transport, bounded source/sink forcing, and bounded residual correction. The resulting temperature increment updates both the field and the recurrent latent state. A separate scale head provides forecast uncertainty. The frozen model rolls forward recurrently for +1…+6 h.
+
+The intervention pathway shown in the architecture remains downstream of forecasting: hotspot prioritization is followed by engineering review, treated/control measurement, and CANDRA validation or abstention. SAM-WM therefore predicts where heat may persist; it does not infer the cooling effect of an unmeasured intervention.
+
+## Experiments and results
+
+### Training and evaluation protocol
+
+Freiburg is the only training domain. Checkpoint selection and uncertainty calibration use Freiburg validation data only. Novi Sad is opened only for zero-shot evaluation, with no target fine-tuning and no target recalibration.
 
 | Item | Setting |
 |---|---|
@@ -175,15 +199,14 @@ All learned systems use the same source-only evaluation protocol. Freiburg is th
 | Conformal $\alpha$ | 0.10 |
 | Seeds | 17, 29, 42, 73, 101 |
 | Kaggle accelerator | 2 × Tesla T4 available; CUDA 12.8 |
+| Kaggle PyTorch runtime | 2.10.0+cu128 |
 | Paper-suite fits | 8 model/ablation families × 5 seeds = 40 |
 
-The paper-suite configuration is tracked in [`config/paper.yaml`](config/paper.yaml). The Kaggle runtime recorded PyTorch 2.10.0+cu128 and Tesla T4 hardware. The training code does not make a distributed-data-parallel performance claim; the fixed data splits, seeds, configuration, checkpoints, and machine-readable results define the reproducibility contract.
+The paper-suite configuration is tracked in [`config/paper.yaml`](config/paper.yaml). The Kaggle runtime exposed two Tesla T4 GPUs; no distributed-data-parallel speedup claim is made. Reproducibility is defined by the fixed data splits, seeds, configuration, checkpoints, and machine-readable result artifacts.
 
 ### Freiburg held-out and Novi Sad zero-shot transfer
 
-<p align="center">
-  <img src="results/paper_suite/figures/forecast_and_calibration.svg" width="94%" alt="Freiburg held-out and Novi Sad zero-shot accuracy and frozen-source calibration">
-</p>
+![Freiburg held-out and Novi Sad zero-shot accuracy and frozen-source calibration](results/paper_suite/figures/forecast_and_calibration.svg)
 
 | Model | Freiburg MAE °C ↓ | Freiburg RMSE °C ↓ | Freiburg coverage | Novi Sad MAE °C ↓ | Novi Sad RMSE °C ↓ | Novi Sad coverage |
 |---|---:|---:|---:|---:|---:|---:|
@@ -191,23 +214,19 @@ The paper-suite configuration is tracked in [`config/paper.yaml`](config/paper.y
 | iTransformer task adapter | 1.6560 ± 0.0758 | 2.2879 ± 0.0997 | 87.96% ± 1.39% | 4.1367 ± 0.6737 | 5.1015 ± 0.7979 | 50.71% ± 7.42% |
 | TimeMixer task adapter | **1.4424 ± 0.0326** | **2.0023 ± 0.0484** | 89.49% ± 0.62% | 2.7799 ± 0.7516 | 3.4389 ± 0.7675 | 63.73% ± 17.47% |
 
-TimeMixer is marginally lower in Freiburg MAE, so the experiment does not support a universal source-domain superiority claim. The notable result is transfer: SAM-WM changes from 1.4515 °C MAE in Freiburg to 1.4675 °C in Novi Sad, whereas the two task adapters degrade substantially under the same source-only protocol.
+TimeMixer is marginally lower in Freiburg MAE, so the experiment does not support a universal source-domain superiority claim. The principal transfer observation is that SAM-WM changes from 1.4515 °C MAE in Freiburg to 1.4675 °C in Novi Sad, whereas the two comparison systems degrade substantially under the same source-only protocol.
 
 The iTransformer and TimeMixer systems in this repository are task-specific implementations based on the published architectures. They are not presented as reproductions of the authors' official repositories or as official benchmark numbers.
 
 ### Horizon-wise error
 
-<p align="center">
-  <img src="results/paper_suite/figures/main_horizon_results.svg" width="94%" alt="Horizon-wise Freiburg and Novi Sad forecast error">
-</p>
+![Horizon-wise Freiburg and Novi Sad forecast error](results/paper_suite/figures/main_horizon_results.svg)
 
 Bands show the standard deviation across the five frozen seeds.
 
 ### Ablations
 
-<p align="center">
-  <img src="results/paper_suite/figures/samwm_ablations.svg" width="94%" alt="SAM-WM ablation study">
-</p>
+![SAM-WM ablation study](results/paper_suite/figures/samwm_ablations.svg)
 
 | Variant | Freiburg MAE ↓ | Novi Sad MAE ↓ | Observation |
 |---|---:|---:|---|
@@ -222,17 +241,31 @@ The exchange operator is justified here by its structural conservation property,
 
 ### Representative Novi Sad rollout
 
-<p align="center">
-  <img src="results/paper_suite/figures/forecast_trace.svg" width="94%" alt="Representative Novi Sad zero-shot rollout">
-</p>
+![Representative Novi Sad zero-shot rollout](results/paper_suite/figures/forecast_trace.svg)
 
-[`efficiency.svg`](results/paper_suite/figures/efficiency.svg) and [`learning_curves.svg`](results/paper_suite/figures/learning_curves.svg) are retained as supplementary diagnostics. Five paper figures are direct SVG exports from the completed Kaggle archive. `forecast_trace.svg` is a layout-only rerender from the exact stored trace arrays to move its legend outside the data region; no target, prediction, seed, split, or metric was changed.
+### Efficiency
+
+![SAM-WM efficiency results](results/paper_suite/figures/efficiency.svg)
+
+### Learning curves
+
+![SAM-WM learning curves](results/paper_suite/figures/learning_curves.svg)
+
+Five paper figures are direct SVG exports from the completed Kaggle archive. `forecast_trace.svg` is a layout-only rerender from the exact stored trace arrays to move its legend outside the data region; no target, prediction, seed, split, or metric was changed.
+
+## Discussion
+
+The source-domain result alone does not establish universal model superiority: TimeMixer obtains a marginally lower Freiburg MAE. The more informative observation is cross-city behavior. SAM-WM changes from **1.4515 °C MAE** on Freiburg held-out data to **1.4675 °C MAE** on the unseen Novi Sad evaluation, while the two comparison systems degrade more strongly under the same source-only protocol.
+
+The ablations also prevent an overly simple novelty claim. Removing SIGReg reduces Freiburg error but weakens transfer/calibration; removing the mental map increases error in both domains; removing the residual branch affects the unseen-city result more strongly. Conversely, removing exchange barely changes aggregate MAE. The exchange mechanism is therefore motivated by its structural conservation contract rather than by a claim that it alone improves aggregate accuracy.
+
+The FortyGuard replay tests a different question from the paper benchmarks: whether the frozen deployment bundle is sufficiently calibrated on the real provider context. Its empirical coverage is **79.899691%** against a fixed **80.000000%** minimum. CoolWorld consequently keeps `operational_certified=false`; the threshold is not weakened after observing the result.
 
 ## FortyGuard integration
 
 CoolWorld uses the FortyGuard Temperature API as the deployment evidence source. The repository contains **65 recorded hourly TCM frames** over a single **36-tile San José, California** grid. Requests and completed responses are content-addressed, and the public application uses recorded evidence by default. No provider API key is committed or exposed in the browser.
 
-The collector reads the participant credential only from the server-side `FORTYGUARD_API_KEY` environment variable and sends it in FortyGuard's required `api-key` header. The tracked completed request below contains a provider-issued `activity_id` and a completed response artifact; the secret credential itself is intentionally never written to Git.
+The collector reads the participant credential only from the server-side `FORTYGUARD_API_KEY` environment variable and sends it in FortyGuard's required `api-key` header. The tracked completed request contains a provider-issued `activity_id` and a completed response artifact; the secret credential itself is intentionally never written to Git.
 
 One tracked request is stored at [`artifacts/fortyguard/f5f0fdf137c5dedfef886e8dba32b5038b97f247640328110c67acbff8e096ee.activity.json`](artifacts/fortyguard/f5f0fdf137c5dedfef886e8dba32b5038b97f247640328110c67acbff8e096ee.activity.json):
 
@@ -321,7 +354,18 @@ The promoted deployment checkpoint was replayed without retraining on the record
 
 The fixed threshold is not modified after evaluation. CoolWorld therefore exposes this checkpoint as a **research forecast**, not an operationally certified temperature forecast.
 
-## Installation
+## Demo guide
+
+The public demo is designed to be judged without a login, installation, or API credential: [**Open CoolWorld**](https://sam-wm-coolworld.onrender.com/).
+
+1. **Observe.** Select **OBSERVE** first. This view presents the recorded FortyGuard thermal evidence used by the deployment workflow: 65 recorded hourly frames over a fixed 36-tile San José grid. Interpret this stage as provider evidence, not a SAM-WM forecast.
+2. **Forecast.** Select **FORECAST**. CoolWorld takes the latest valid 48-hour context and runs the frozen SAM-WM checkpoint recurrently for +1…+6 h. Forecast values and their uncertainty interval are displayed separately from observations. Interpret this as a research prediction, not a measurement or operational guarantee.
+3. **Prioritize.** Select **PRIORITIZE**. Tiles are ranked using their predicted future temperature trajectory and persistence among the hotter part of the forecast field. Priority means that a location merits engineering investigation first; it does not mean that a particular intervention is already proven to reduce temperature by a specified amount.
+4. **Evidence.** Select **EVIDENCE**. This stage exposes the benchmark and deployment evidence behind the forecast, including the frozen provider-replay result of **79.899691% empirical coverage against the predeclared 80.000000% minimum**. Operational certification therefore remains **FAIL**.
+
+After a hotspot is identified, the intended next step is a human engineering review. If a physical intervention is implemented, comparable treated/control measurements are collected and passed through CANDRA. A numerical cooling effect is exposed only when the evidence contract is satisfied; otherwise the system abstains.
+
+## Run from scratch
 
 Python **3.11 or 3.12** is supported.
 
@@ -391,26 +435,26 @@ The public application uses a separate hash-locked deployment bundle in `artifac
 
 ## Repository layout
 
-```text
-SAM-WM/
-├── src/coolworld/          # model, data, graph, evaluation and application code
-├── config/                 # frozen training and paper-suite configurations
-├── static/                 # CoolWorld browser interface
-├── tests/                  # unit and contract tests
-├── notebooks/              # Kaggle execution notebook
-├── scripts/                # paper-suite import/plot utilities
-├── artifacts/              # provider and deployment evidence
-├── results/paper_suite/    # final machine-readable results, checkpoint and figures
-├── docs/architecture/      # exact publication architecture SVG
-├── Dockerfile
-├── Makefile
-├── pyproject.toml
-└── README.md
-```
+| Path | Purpose |
+|---|---|
+| `src/coolworld/` | model, graph, data, evaluation, deployment, CANDRA, and application code |
+| `config/` | frozen training and paper-suite configurations |
+| `static/` | CoolWorld browser interface |
+| `tests/` | unit, contract, runtime, and provider-integration tests |
+| `notebooks/` | Kaggle execution notebook |
+| `scripts/` | paper-suite import and plotting utilities |
+| `artifacts/` | recorded FortyGuard evidence and frozen deployment artifacts |
+| `results/paper_suite/` | final machine-readable results, selected checkpoint, and publication figures |
+| `docs/architecture/` | exact final architecture SVG |
+| `Dockerfile` | public-demo container definition |
+| `Makefile` | verification, training, paper-suite, and serving commands |
+| `pyproject.toml` | package metadata and dependencies |
 
-Core executable entry points are retained at repository root because the Makefile and CI compile or invoke them directly.
+Core executable entry points remain at repository root because the Makefile and CI compile or invoke them directly.
 
-## Limitations
+## Limitations and future work
+
+### Limitations
 
 - The provider replay reaches 79.899691% empirical coverage against a fixed 80% operational threshold; the current deployment is therefore not operationally certified.
 - No independent treated/control intervention dataset is present, so the repository does not report a causal temperature reduction for trees, shade, reflective materials, or other physical interventions; the CANDRA action gate therefore remains closed in the public runtime.
@@ -418,6 +462,10 @@ Core executable entry points are retained at repository root because the Makefil
 - The final deadline paper suite reports one unseen-city evaluation, Novi Sad. Turku was deferred when the FAIRUrbTemp host was unavailable during the final run.
 - Conservative exchange is structurally conservative but does not produce a material aggregate-MAE improvement in the present ablation.
 - Relative-humidity availability differs between source and target data; the −RH experiment exposes this modality shift.
+
+### Future work
+
+Immediate research priorities are to evaluate additional unseen cities when the required source data are available, improve deployment-domain calibration without changing thresholds after evaluation, and collect genuine treated/control intervention datasets for CANDRA. A later engineering deployment should additionally incorporate site constraints, intervention cost, permissions, maintenance requirements, and longitudinal post-intervention monitoring.
 
 ## Development and disclosure
 
@@ -427,27 +475,31 @@ AI-assisted tools were used for code review, debugging, testing, documentation e
 
 ## References
 
-### Urban temperature data
+Amini, S., Huerta, A., Franke, J. *et al.* (2026) 'Comprehensive compilation and quality assessment of street-level urban air temperature measurements across European networks', *Scientific Data*, 13, 658. Available at: [https://doi.org/10.1038/s41597-026-06804-4](https://doi.org/10.1038/s41597-026-06804-4).
 
-1. M. Plein, G. Feigel, M. Zeeman, C. Dormann, and A. Christen. **Street-level weather station network in Freiburg, Germany: Curated dataset from 2022-09-01 to 2023-08-31 [L2]**. Zenodo (2024). [doi:10.5281/zenodo.12732565](https://doi.org/10.5281/zenodo.12732565)
-2. S. Savić, I. Šećerov, J. Dunjić, and D. Milošević. **Hourly Air Temperature Datasets from city of Novi Sad — NSUNET system**. Zenodo (2023). [doi:10.5281/zenodo.7738094](https://doi.org/10.5281/zenodo.7738094)
-3. S. Amini, A. Huerta, J. Franke, et al. **Comprehensive compilation and quality assessment of street-level urban air temperature measurements across European networks**. *Scientific Data* 13, 658 (2026). [doi:10.1038/s41597-026-06804-4](https://doi.org/10.1038/s41597-026-06804-4)
+Baek, D., Lee, G., Baek, J., Lee, H. and Ahn, S. (2026) 'Learning to Theorize the World from Observation', *Proceedings of the 43rd International Conference on Machine Learning (ICML 2026)*, Oral. Available at: [https://arxiv.org/abs/2605.03413](https://arxiv.org/abs/2605.03413).
 
-### Forecasting and world models
+Baek, J., Wu, Y.-F., Singh, G. and Ahn, S. (2025) 'Dreamweaver: Learning Compositional World Models from Pixels', *The Thirteenth International Conference on Learning Representations (ICLR 2025)*. Available at: [https://arxiv.org/abs/2501.14174](https://arxiv.org/abs/2501.14174) and [OpenReview](https://openreview.net/forum?id=e5mTvjXG9u).
 
-4. D. Ha and J. Schmidhuber. **World Models**. arXiv preprint (2018). [arXiv:1803.10122](https://arxiv.org/abs/1803.10122)
-5. Y. Liu, T. Hu, H. Zhang, H. Wu, S. Wang, L. Ma, and M. Long. **iTransformer: Inverted Transformers Are Effective for Time Series Forecasting**. ICLR 2024. [arXiv:2310.06625](https://arxiv.org/abs/2310.06625)
-6. S. Wang, H. Wu, X. Shi, T. Hu, H. Luo, L. Ma, J. Y. Zhang, and J. Zhou. **TimeMixer: Decomposable Multiscale Mixing for Time Series Forecasting**. ICLR 2024. [arXiv:2405.14616](https://arxiv.org/abs/2405.14616)
-7. J. Baek, Y.-F. Wu, G. Singh, and S. Ahn. **Dreamweaver: Learning Compositional World Models from Pixels**. ICLR 2025. [arXiv:2501.14174](https://arxiv.org/abs/2501.14174) · [OpenReview](https://openreview.net/forum?id=e5mTvjXG9u)
-8. R. Balestriero and Y. LeCun. **LeJEPA: Provable and Scalable Self-Supervised Learning Without the Heuristics**. 2025. [arXiv:2511.08544](https://arxiv.org/abs/2511.08544)
-9. L. Maes, Q. Le Lidec, D. Scieur, Y. LeCun, and R. Balestriero. **LeWorldModel: Stable End-to-End Joint-Embedding Predictive Architecture from Pixels**. 2026. [arXiv:2603.19312](https://arxiv.org/abs/2603.19312)
-10. D. Baek, G. Lee, J. Baek, H. Lee, and S. Ahn. **Learning to Theorize the World from Observation**. ICML 2026 Oral. [arXiv:2605.03413](https://arxiv.org/abs/2605.03413)
+Balestriero, R. and LeCun, Y. (2025) 'LeJEPA: Provable and Scalable Self-Supervised Learning Without the Heuristics', arXiv preprint arXiv:2511.08544. Available at: [https://arxiv.org/abs/2511.08544](https://arxiv.org/abs/2511.08544).
 
-### Learned weather dynamics
+Ha, D. and Schmidhuber, J. (2018) 'World Models', arXiv preprint arXiv:1803.10122. Available at: [https://arxiv.org/abs/1803.10122](https://arxiv.org/abs/1803.10122).
 
-11. R. Lam, A. Sanchez-Gonzalez, M. Willson, et al. **Learning skillful medium-range global weather forecasting** (GraphCast). *Science* 382, 1416–1421 (2023). [doi:10.1126/science.adi2336](https://doi.org/10.1126/science.adi2336)
-12. D. Kochkov, J. Yuval, I. Langmore, et al. **Neural general circulation models for weather and climate**. *Nature* 632, 1060–1066 (2024). [doi:10.1038/s41586-024-07744-y](https://doi.org/10.1038/s41586-024-07744-y)
-13. I. Price, A. Sanchez-Gonzalez, F. Alet, et al. **Probabilistic weather forecasting with machine learning** (GenCast). *Nature* 637, 84–90 (2025). [doi:10.1038/s41586-024-08252-9](https://doi.org/10.1038/s41586-024-08252-9)
+Kochkov, D., Yuval, J., Langmore, I. *et al.* (2024) 'Neural general circulation models for weather and climate', *Nature*, 632, pp. 1060–1066. Available at: [https://doi.org/10.1038/s41586-024-07744-y](https://doi.org/10.1038/s41586-024-07744-y).
+
+Lam, R., Sanchez-Gonzalez, A., Willson, M. *et al.* (2023) 'Learning skillful medium-range global weather forecasting', *Science*, 382, pp. 1416–1421. Available at: [https://doi.org/10.1126/science.adi2336](https://doi.org/10.1126/science.adi2336).
+
+Liu, Y., Hu, T., Zhang, H., Wu, H., Wang, S., Ma, L. and Long, M. (2024) 'iTransformer: Inverted Transformers Are Effective for Time Series Forecasting', *The Twelfth International Conference on Learning Representations (ICLR 2024)*. Available at: [https://arxiv.org/abs/2310.06625](https://arxiv.org/abs/2310.06625).
+
+Maes, L., Le Lidec, Q., Scieur, D., LeCun, Y. and Balestriero, R. (2026) 'LeWorldModel: Stable End-to-End Joint-Embedding Predictive Architecture from Pixels', arXiv preprint arXiv:2603.19312. Available at: [https://arxiv.org/abs/2603.19312](https://arxiv.org/abs/2603.19312).
+
+Plein, M., Feigel, G., Zeeman, M., Dormann, C. and Christen, A. (2024) *Street-level weather station network in Freiburg, Germany: Curated dataset from 2022-09-01 to 2023-08-31 [L2]*. Zenodo. Available at: [https://doi.org/10.5281/zenodo.12732565](https://doi.org/10.5281/zenodo.12732565).
+
+Price, I., Sanchez-Gonzalez, A., Alet, F. *et al.* (2025) 'Probabilistic weather forecasting with machine learning', *Nature*, 637, pp. 84–90. Available at: [https://doi.org/10.1038/s41586-024-08252-9](https://doi.org/10.1038/s41586-024-08252-9).
+
+Savić, S., Šećerov, I., Dunjić, J. and Milošević, D. (2023) *Hourly Air Temperature Datasets from city of Novi Sad — NSUNET system*. Zenodo. Available at: [https://doi.org/10.5281/zenodo.7738094](https://doi.org/10.5281/zenodo.7738094).
+
+Wang, S., Wu, H., Shi, X., Hu, T., Luo, H., Ma, L., Zhang, J.Y. and Zhou, J. (2024) 'TimeMixer: Decomposable Multiscale Mixing for Time Series Forecasting', *The Twelfth International Conference on Learning Representations (ICLR 2024)*. Available at: [https://arxiv.org/abs/2405.14616](https://arxiv.org/abs/2405.14616).
 
 ## License
 
