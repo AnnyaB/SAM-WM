@@ -24,7 +24,7 @@ The lower path is deliberately outside the forecasting model: **prioritize → e
 
 ## Method
 
-Let \(G=(V,E)\) be the sparse city graph, \(T_i^t\) the normalized temperature at node \(i\), \(z_i^t\) its latent state, and \(\tau^t\) the daily/annual cyclical time encoding. The router produces four non-negative mechanism weights:
+Let $G=(V,E)$ be the sparse city graph, $T_i^t$ the normalized temperature at node $i$, $z_i^t$ its latent state, and $\tau^t$ the daily/annual cyclical time encoding. The router produces four non-negative mechanism weights:
 
 ```math
 \boldsymbol{\alpha}_i^t
@@ -44,9 +44,9 @@ r_\theta\!\left([z_i^t,\tau^t]\right)
 \right].
 ```
 
-When future wind is unavailable, the wind logit is masked before the softmax, so \(\alpha_i^{\mathrm{wind}}=0\) exactly.
+When future wind is unavailable, the wind logit is masked before the softmax, so $\alpha_i^{\mathrm{wind}}=0$ exactly.
 
-For an undirected physical edge \((i,j)\), the exchange operator learns a non-negative symmetric conductance and applies an antisymmetric pair flux:
+For an undirected physical edge $(i,j)$, the exchange operator learns a non-negative symmetric conductance and applies an antisymmetric pair flux:
 
 ```math
 F_{ij}^{t}
@@ -59,7 +59,7 @@ F_{ij}^{t}
 \sum_{j:(i,j)\in E} F_{ij}^{t},
 ```
 
-with the opposite contribution applied at node \(j\). Consequently, the exchange term alone has zero global sum up to floating-point error. Wind transport uses an analogous conservative edge update with an upwind temperature when wind observations are available.
+with the opposite contribution applied at node $j$. Consequently, the exchange term alone has zero global sum up to floating-point error. Wind transport uses an analogous conservative edge update with an upwind temperature when wind observations are available.
 
 The local forcing terms are bounded:
 
@@ -149,19 +149,19 @@ All learned systems use the same source-only evaluation protocol. Freiburg is th
 |---|---|
 | Context | 48 h |
 | Forecast horizon | +1…+6 h |
-| Physical graph | kNN, \(k=4\) |
+| Physical graph | kNN, $k=4$ |
 | SAM-WM hidden dimension | 64 |
 | Source-bound quantile | 0.995 |
-| Residual fraction \(\rho\) | 0.20 |
+| Residual fraction $\rho$ | 0.20 |
 | SIGReg coefficient | 0.01 |
 | SIGReg projections | 256 |
 | Batch size | 64 |
 | Maximum epochs | 80 |
 | Early-stopping patience | 10 |
-| Learning rate | \(3\times10^{-4}\) |
-| Weight decay | \(1\times10^{-4}\) |
+| Learning rate | $3\times10^{-4}$ |
+| Weight decay | $1\times10^{-4}$ |
 | Gradient clipping | 1.0 |
-| Conformal \(\alpha\) | 0.10 |
+| Conformal $\alpha$ | 0.10 |
 | Seeds | 17, 29, 42, 73, 101 |
 | Kaggle accelerator | 2 × Tesla T4 available; CUDA 12.8 |
 | Paper-suite fits | 8 model/ablation families × 5 seeds = 40 |
@@ -422,7 +422,7 @@ AI-assisted tools were used for code review, debugging, testing, documentation e
 
 ### Forecasting and world models
 
-4. D. Ha and J. Schmidhuber. **World Models**. NeurIPS 2018. [arXiv:1803.10122](https://arxiv.org/abs/1803.10122)
+4. D. Ha and J. Schmidhuber. **World Models**. arXiv preprint (2018). [arXiv:1803.10122](https://arxiv.org/abs/1803.10122)
 5. Y. Liu, T. Hu, H. Zhang, H. Wu, S. Wang, L. Ma, and M. Long. **iTransformer: Inverted Transformers Are Effective for Time Series Forecasting**. ICLR 2024. [arXiv:2310.06625](https://arxiv.org/abs/2310.06625)
 6. S. Wang, H. Wu, X. Shi, T. Hu, H. Luo, L. Ma, J. Y. Zhang, and J. Zhou. **TimeMixer: Decomposable Multiscale Mixing for Time Series Forecasting**. ICLR 2024. [arXiv:2405.14616](https://arxiv.org/abs/2405.14616)
 7. J. Baek, Y.-F. Wu, G. Singh, and S. Ahn. **Dreamweaver: Learning Compositional World Models from Pixels**. ICLR 2025. [arXiv:2501.14174](https://arxiv.org/abs/2501.14174) · [OpenReview](https://openreview.net/forum?id=e5mTvjXG9u)
