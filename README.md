@@ -1,6 +1,15 @@
 # CoolWorld: Sparse Adaptive Mechanism World Model for Urban Heat Forecasting
 
-https://github.com/user-attachments/assets/97c70c51-58eb-47bc-b48c-9afca37aa4a7
+<p align="center">
+  <video
+    src=https://github.com/user-attachments/assets/2b27a7f3-0f87-4213-9580-180f6c66baf4
+    width="620"
+    controls
+    playsinline>
+  </video>
+</p>
+
+
 
 **FortyGuard Hackathon'26**  
 **Primary track:** Track 5 — Model Designing · **Secondary track:** Track 1 — Resilient Cities & Infrastructure
