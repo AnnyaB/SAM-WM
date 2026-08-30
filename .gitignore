@@ -12,3 +12,8 @@ artifacts/
 *.pth
 *.ckpt
 *.zip
+
+# Keep large training binaries out of Git, but intentionally track the one
+# validation-selected SAM-WM checkpoint documented in results/paper_suite/.
+!results/paper_suite/checkpoints/
+!results/paper_suite/checkpoints/samwm_seed42_best.pt
