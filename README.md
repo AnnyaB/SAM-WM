@@ -387,11 +387,18 @@ After a hotspot is identified, the intended next step is a human engineering rev
 Python **3.11 or 3.12** is supported.
 
 ```bash
-git clone https://github.com/AnnyaB/SAM-WM.git
+git clone --branch main --single-branch https://github.com/AnnyaB/SAM-WM.git
 cd SAM-WM
 
-python3.11 -m venv .venv
+PYTHON_BIN="$(command -v python3.12 || command -v python3.11 || true)"
+if [ -z "$PYTHON_BIN" ]; then
+  echo "Python 3.11 or 3.12 is required."
+  exit 1
+fi
+
+"$PYTHON_BIN" -m venv .venv
 source .venv/bin/activate
+python --version
 python -m pip install --upgrade pip
 python -m pip install -e '.[dev,app]'
 
