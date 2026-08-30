@@ -1,13 +1,13 @@
-# FortyGuard Hackathon'26 submission checklist
+# FortyGuard Hackathon'26 final submission checklist
 
-Deadline: **30 August 2026, 11:59 PM GST**.
+**Hard deadline:** 30 August 2026, 11:59 PM GST. No late submissions.
 
-## Required submission pieces
+## Four required deliverables
 
-1. **Official submission form** — project title, one-line pitch, primary track, optional secondary tags, target user/problem, location/time period, how the FortyGuard API was used, API key(s) entered in the form only, AI-tool disclosure, repository link, live-demo link, and demo-video link.
-2. **Live demo** — must open in a private/incognito browser with no login or install and remain available through judging.
-3. **Demo video** — maximum 3 minutes; YouTube or Loom is acceptable; show the actual working project, not slides; voiceover is required; face is optional.
-4. **Code repository** — GitHub or GitLab. If private, add `Hackathon-FG` / `hackathon@fortyguard.com` as collaborator. README must show how to run from scratch, what does not work yet, and one real FortyGuard API request + response. Never commit API keys.
+1. **Official submission form** — for a solo entry, submit the participant's own FortyGuard API key in the form only. The form also asks for the project title, one-line pitch, primary track, up to two optional secondary tags, target user/problem, city/area and time period, how the Temperature API was used, AI-tool disclosure, and the repository/live-demo/video links.
+2. **Live demo** — a URL anyone can open in a private/incognito browser without login or installation. It must remain live through judging.
+3. **Demo video** — maximum 3 minutes; YouTube or Loom; unlisted is acceptable. It must show the **working project**, not slides. Voiceover is required; face is optional.
+4. **Code repository** — GitHub or GitLab. If private, add `Hackathon-FG` / `hackathon@fortyguard.com`. The README must show how to run from scratch, what does not work yet, and one real FortyGuard API request + response. **Never commit an API key.**
 
 Official form: https://forms.gle/jLgBzVTG1NhJ3gNe6
 
@@ -15,27 +15,32 @@ Official form: https://forms.gle/jLgBzVTG1NhJ3gNe6
 
 | Criterion | Weight | SAM-WM evidence to foreground |
 |---|---:|---|
-| Impact & Relevance | 40% | persistent urban hotspot prioritization, real provider data, field-intervention workflow, explicit client/user path |
-| Technical Execution | 35% | real FastAPI/3D deployment, immutable provider evidence, 40-run paper suite, zero-shot OOD, calibration, tests/CI, fail-closed gates |
-| Innovation | 15% | sparse mechanism-structured world model, bounded thermal operators, uncertainty/evidence separation |
-| Communication | 10% | clean README, ≤3 min working-product video with voiceover, explicit claim boundaries |
+| Impact & Relevance | 40% | real San José thermal evidence; persistent-hotspot prioritization for resilient-city engineering review; explicit path from forecast → field action → measured treated/control evidence |
+| Technical Execution | 35% | real FastAPI/3D deployment; custom fail-closed FortyGuard integration; immutable request/response hashes; 40-run matched suite; zero-shot OOD; uncertainty; tests and frozen deployment gates |
+| Innovation | 15% | sparse mechanism-structured thermal world model with typed exchange/transport/source/residual operators, adaptive routing and uncertainty-aware rollout |
+| Communication | 10% | concise README; real API proof; honest failure/claim boundaries; ≤3-minute working-product video with voiceover |
 
-## Recommended submission framing
+## Submission framing
 
 - **Title:** SAM-WM · CoolWorld
 - **One-line pitch:** A sparse mechanism-structured world model that turns real FortyGuard temperature evidence into uncertainty-aware six-hour urban heat forecasts and persistent-hotspot priorities for resilient-city engineering review.
-- **Primary track:** Track 1 — Resilient Cities & Infrastructure
-- **Secondary tag:** Track 5 — Model Designing
-- **Deployment use case:** San José, California, using recorded FortyGuard TCM evidence on a 36-tile grid.
-- **Research validation:** Freiburg held-out + zero-shot Novi Sad; these research cities are validation domains, not the deployed U.S. provider AOI.
+- **Primary track:** Track 1 — Resilient Cities & Infrastructure.
+- **Optional secondary tag:** Track 5 — Model Designing.
+- **Deployment use case:** San José, California; 65 recorded hourly FortyGuard TCM frames on one 36-tile grid.
+- **Research validation:** Freiburg held-out + zero-shot Novi Sad. These are research validation domains, not the deployed U.S. provider area.
+
+## Boilerplate / provenance clarification
+
+FortyGuard allows the official Temperature API Quickstart as pre-existing boilerplate if it is disclosed in the README. **SAM-WM was not cloned from that Quickstart.** The repository was initialized independently after kickoff; the Temperature API integration is implemented by the custom client in `src/coolworld/fortyguard.py` and the bounded collector in `fortyguard_collect.py`. Do not falsely add a Quickstart-boilerplate attribution.
 
 ## Final pre-submit checks
 
-- [ ] Open `https://sam-wm-coolworld.onrender.com` in a private/incognito browser: no login, no install.
-- [ ] Confirm `/api/health` is healthy and the guided Observe → Forecast → Prioritize → Evidence flow works.
-- [ ] Record the actual working product, not slides; keep video ≤3:00 and include voiceover.
-- [ ] Keep the FortyGuard API key out of Git, video, screenshots, browser code, and chat; enter it only in the official form where requested.
+- [ ] Open `https://sam-wm-coolworld.onrender.com` in a fresh private/incognito browser: no login, no installation.
+- [ ] Confirm `/api/health` returns `status: ok` and the Observe → Forecast → Prioritize → Evidence workflow renders.
+- [ ] Confirm the app clearly labels the SAM-WM output as a **research forecast** when the fixed operational replay gate has not passed.
+- [ ] Record the actual product, not slides; keep the video ≤3:00 and use voiceover.
+- [ ] Keep the FortyGuard API key out of Git, video, screenshots, URLs, browser code and chat; enter it only in the official form.
 - [ ] If the repository remains private, add `Hackathon-FG` (`hackathon@fortyguard.com`) before submission.
-- [ ] Confirm README includes run-from-scratch instructions, limitations, real API request/response, AI-tool disclosure, results, and live-demo link.
-- [ ] Submit repository, live demo, and video links in the official form before the deadline.
-- [ ] Re-test the free Render deployment after submission because free services may sleep.
+- [ ] Confirm README contains run-from-scratch commands, limitations, an inline real API request/response example, AI-tool disclosure, exact results and the live-demo link.
+- [ ] Submit repository, live demo and video links before the hard deadline.
+- [ ] Re-test the Render URL after submission; free services can sleep.
