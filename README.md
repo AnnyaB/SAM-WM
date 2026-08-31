@@ -563,6 +563,6 @@ Wang, S., Wu, H., Shi, X., Hu, T., Luo, H., Ma, L., Zhang, J.Y. and Zhou, J. (20
 
 See [`LICENSE`](LICENSE).
 
-<p align="right">
+<p align="center">
   <a href="#top">↑ Back to top</a>
 </p>
