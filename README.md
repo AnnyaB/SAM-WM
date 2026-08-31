@@ -232,7 +232,7 @@ Freiburg is the only training domain. Checkpoint selection and uncertainty calib
 | Seeds | 17, 29, 42, 73, 101 |
 | Kaggle accelerator | 2 × Tesla T4 available; CUDA 12.8 |
 | Kaggle PyTorch runtime | 2.10.0+cu128 |
-| Paper-suite fits | 8 model/ablation families × 5 seeds = 40 |
+| Suite fits | 8 model/ablation families × 5 seeds = 40 |
 
 The configuration is tracked in [`config/paper.yaml`](config/paper.yaml). The Kaggle runtime exposed two Tesla T4 GPUs. Reproducibility is defined by the fixed data splits, seeds, configuration, checkpoints, and machine-readable result artifacts.
 
