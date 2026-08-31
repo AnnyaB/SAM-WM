@@ -1,3 +1,5 @@
+<a id="top"></a>
+
 # CoolWorld: Sparse Adaptive Mechanism World Model for Urban Heat Forecasting
 
 <p align="center">
@@ -9,28 +11,39 @@
   </video>
 </p>
 
-
-
 **FortyGuard Hackathon'26**  
 **Primary track:** Track 5 — Model Designing · **Secondary track:** Track 1 — Resilient Cities & Infrastructure
+**Build period:** Developed following the official onboarding and kickoff on 18 August 2026.
 
 <p align="center">
   <a href="https://sam-wm-coolworld.onrender.com/"><strong>Live Demo</strong></a>
 </p>
 
 <p align="center">
+  <a href="#why-i-built-this">Why I Built This</a> ·
   <a href="#problem-and-user">Problem</a> ·
   <a href="#existing-approaches-and-research-gap">Research Gap</a> ·
   <a href="#proposed-method">Method</a> ·
   <a href="#architecture">Architecture</a> ·
   <a href="#experiments-and-results">Results</a> ·
   <a href="#discussion">Discussion</a> ·
+  <a href="#fortyguard-integration">FortyGuard</a> ·
+  <a href="#deployment-status">Deployment</a> ·
+  <a href="#what-you-can-try-in-the-live-demo">Demo Features</a> ·
   <a href="#demo-guide">Demo Guide</a> ·
   <a href="#run-from-scratch">Run</a> ·
+  <a href="#training-and-reproduction">Reproduce</a> ·
+  <a href="#limitations-and-future-work">Limitations</a> ·
   <a href="#references">References</a>
 </p>
 
 CoolWorld turns real FortyGuard temperature evidence into uncertainty-aware short-horizon urban heat forecasts and persistent-hotspot priorities. Its forecasting engine, **Sparse Adaptive Mechanism World Model (SAM-WM)**, represents an urban thermal field as a sparse physical graph, learns recurrent latent dynamics, and composes bounded thermal mechanisms over six one-hour forecast steps. The final configuration contains **117,705 trainable parameters**.
+
+### Why I built this
+
+I wanted CoolWorld to answer a narrower and harder question than simply producing a heat map: **can a compact world model learn how a local thermal field evolves, transfer to an unseen city, quantify what it does not know, and refuse to invent intervention effects that have never been measured?**
+
+I therefore designed SAM-WM around sparse local interactions, bounded thermal mechanisms, recurrent state, uncertainty calibration, and explicit evidence gates.
 
 ## Problem and user
 
@@ -371,6 +384,21 @@ The promoted deployment checkpoint was replayed without retraining on the record
 
 The fixed threshold is not modified after evaluation.
 
+## What you can try in the live demo
+
+- **Replay the measured city.** Use ▶ or drag the timeline through the 65 recorded FortyGuard hourly fields.
+- **Inspect individual tiles.** Hover the thermal field to read the actual temperature associated with a provider-grid tile.
+- **Run the frozen SAM-WM forecast.** Switch to the SAM-WM future and inspect the recurrent +1…+6 h rollout.
+- **Inspect uncertainty.** The interface shows the calibrated prediction band separately from the forecast mean.
+- **Find persistent hotspots.** CoolWorld ranks locations by future heat and persistence across the six-hour rollout and renders them on an interactive 3D priority map.
+- **Open the world model.** Select **CITY MODEL · SAM-WM · OPEN MODEL** in the top bar to inspect the 48 h context → sparse graph → routed mechanisms → recurrent six-hour rollout.
+- **Explore the 3D field.** Toggle buildings and the thermal layer, orbit the camera, or reset the view. Camera motion changes visualization only.
+- **Draw a new AOI.** Under **Advanced · data source and optional live field**, select **Draw AOI**, click at least three points on the real basemap, finish the polygon, and choose the requested grid resolution.
+- **Inspect the evidence boundary.** Benchmark, OOD, deployment-replay, model-promotion, calibration, and intervention-evidence states are exposed separately.
+- **Inspect an intervention design without fabricating an effect.** Shade, tree-canopy, and reflective-pavement footprints may be configured, but numerical cooling remains locked unless independently validated treated/control evidence is available.
+
+The public deployment runs in **recorded-evidence mode**, so exploring it does not consume a FortyGuard API allocation. A live FortyGuard request is enabled only when the server has a valid `FORTYGUARD_API_KEY` and `COOLWORLD_LIVE_API_ENABLED=1`.
+
 ## Demo guide
 
 The public demo is designed to be judged without a login, installation, or API credential: [**Open CoolWorld**](https://sam-wm-coolworld.onrender.com/).
@@ -440,7 +468,7 @@ A single SAM-WM run:
 python scripts/train.py --seed 17
 ```
 
-Final paper suite:
+Original frozen Freiburg and Novi Sad suite:
 
 ```bash
 python scripts/paper_suite.py \
@@ -450,7 +478,9 @@ python scripts/paper_suite.py \
   --out artifacts/paper_suite
 ```
 
-Publication figures:
+A later frozen zero-shot Turku/FAIRUrbTemp evaluation is included in `artifacts/summary.json` and exposed by the live evidence interface. It uses the source-trained model without target fine-tuning or target recalibration; it is not retroactively counted among the original training fits.
+
+Figures:
 
 ```bash
 python scripts/plot_results.py \
@@ -465,7 +495,7 @@ The final checkpoint is [`results/paper_suite/checkpoints/samwm_seed42_best.pt`]
 d29e2939f86e7d6961dd16b6d2e5e20a2868d1c003825ef5c0ad2eae996f18dc
 ```
 
-The public application uses a separate hash-locked deployment bundle in `artifacts/deployment/`; the checkpoint must not replace it without regenerating and validating the deployment calibration/evaluation chain.
+The public application uses a separate hash-locked deployment bundle in `artifacts/deployment/`
 
 ## Repository layout
 
@@ -532,3 +562,7 @@ Wang, S., Wu, H., Shi, X., Hu, T., Luo, H., Ma, L., Zhang, J.Y. and Zhou, J. (20
 ## License
 
 See [`LICENSE`](LICENSE).
+
+<p align="right">
+  <a href="#top">↑ Back to top</a>
+</p>
