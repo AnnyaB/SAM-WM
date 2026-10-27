@@ -2,15 +2,6 @@
 
 # CoolWorld: Sparse Adaptive Mechanism World Model for Urban Heat Forecasting
 
-<p align="center">
-  <video
-    src=https://github.com/user-attachments/assets/2b27a7f3-0f87-4213-9580-180f6c66baf4
-    width="450" 
-    controls
-    playsinline>
-  </video>
-</p>
-
 **FortyGuard Hackathon'26**  
 **Primary track:** Track 5 — Model Designing · **Secondary track:** Track 1 — Resilient Cities & Infrastructure
 **Build period:** Developed following the official onboarding and kickoff on 18 August 2026.
